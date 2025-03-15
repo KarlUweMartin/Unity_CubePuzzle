@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 7198868341221281456}
   - component: {fileID: 1391669987029467052}
   m_Layer: 0
-  m_Name: SmoothCube
+  m_Name: SinglePiecePrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

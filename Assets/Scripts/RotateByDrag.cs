@@ -1,14 +1,16 @@
 ﻿using UnityEngine;
 
-public class Rotate : MonoBehaviour
+public class RotateByDrag : MonoBehaviour
 {
-    public float rotationSpeed = 20f;
-    private Vector2 lastMousePosition;
-    private bool isDragging = false;
+    [SerializeField] private float _rotationSpeed = 20f;
+    [SerializeField] private bool _localX, _localY, _invertX, _invertY = false;
+
+    private Vector2 _lastMousePosition;
+    private bool _isDragging = false;
 
     void Update()
     {
-        if (!isDragging && IsPointerOverCollider()) return; 
+        if (!_isDragging && IsPointerOverCollider()) return; 
 
         HandleTouchInput();
         HandleMouseInput();
@@ -20,19 +22,19 @@ public class Rotate : MonoBehaviour
         {
             if (IsPointerOverCollider()) return; 
 
-            isDragging = true;
-            lastMousePosition = Input.mousePosition;
+            _isDragging = true;
+            _lastMousePosition = Input.mousePosition;
         }
         else if (Input.GetMouseButtonUp(0)) 
         {
-            isDragging = false;
+            _isDragging = false;
         }
 
-        if (isDragging)
+        if (_isDragging)
         {
-            Vector2 delta = (Vector2)Input.mousePosition - lastMousePosition;
+            Vector2 delta = (Vector2)Input.mousePosition - _lastMousePosition;
             RotateObject(delta);
-            lastMousePosition = Input.mousePosition;
+            _lastMousePosition = Input.mousePosition;
         }
     }
 
@@ -46,24 +48,24 @@ public class Rotate : MonoBehaviour
             {
                 if (IsPointerOverCollider()) return; 
 
-                lastMousePosition = touch.position;
+                _lastMousePosition = touch.position;
             }
             else if (touch.phase == TouchPhase.Moved)
             {
-                Vector2 delta = touch.position - lastMousePosition;
+                Vector2 delta = touch.position - _lastMousePosition;
                 RotateObject(delta);
-                lastMousePosition = touch.position;
+                _lastMousePosition = touch.position;
             }
         }
     }
 
     void RotateObject(Vector2 delta)
     {
-        Vector3 worldRight = Camera.main.transform.right;
-        Vector3 worldUp = Vector3.up;
+        Vector3 worldUp = _invertX ? Vector3.down : Vector3.up;
+        Vector3 worldRight = _invertY ? -Camera.main.transform.right : Camera.main.transform.right;
 
-        transform.Rotate(worldUp, -delta.x * rotationSpeed * Time.deltaTime, Space.World);
-        transform.Rotate(worldRight, delta.y * rotationSpeed * Time.deltaTime, Space.World);
+        transform.Rotate(worldUp, delta.x * _rotationSpeed * Time.deltaTime, _localX ? Space.Self : Space.World);
+        transform.Rotate(worldRight, delta.y * _rotationSpeed * Time.deltaTime, _localY ? Space.Self : Space.World);
     }
 
     bool IsPointerOverCollider()
