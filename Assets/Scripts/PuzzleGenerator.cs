@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using static LogicModel;
 
@@ -14,6 +16,7 @@ public class PuzzleGenerator : MonoBehaviour
 
     public void ResetCube()
     {
+        IsAnimating = false;
         foreach (var c in _cubes)
         {
             Destroy(c);
@@ -108,7 +111,43 @@ public class PuzzleGenerator : MonoBehaviour
         }
     }
 
+    public GameObject[] GetSliceFromDirection(GameObject singleCube, Vector3 globalDirection)
+    {
+        var cubes = new List<GameObject>();
+
+        Vector3 localPos = transform.InverseTransformPoint(singleCube.transform.position);
+        int x = Mathf.RoundToInt(localPos.x);
+        int y = Mathf.RoundToInt(localPos.y);
+        int z = Mathf.RoundToInt(localPos.z);
+
+        if (globalDirection == Vector3.right || globalDirection == Vector3.left)
+        {
+            // X-axis slices
+            if (x == -1) cubes.AddRange(SliceGroups[Slices.Left_X]);
+            else if (x == 0) cubes.AddRange(SliceGroups[Slices.Middle_X]);
+            else if (x == 1) cubes.AddRange(SliceGroups[Slices.Right_X]);
+        }
+        else if (globalDirection == Vector3.up || globalDirection == Vector3.down)
+        {
+            // Y-axis slices
+            if (y == 1) cubes.AddRange(SliceGroups[Slices.Up_Y]);
+            else if (y == 0) cubes.AddRange(SliceGroups[Slices.Equator_Y]);
+            else if (y == -1) cubes.AddRange(SliceGroups[Slices.Down_Y]);
+        }
+        else if (globalDirection == Vector3.forward || globalDirection == Vector3.back)
+        {
+            // Z-axis slices
+            if (z == -1) cubes.AddRange(SliceGroups[Slices.Front_Z]);
+            else if (z == 0) cubes.AddRange(SliceGroups[Slices.Standing_Z]);
+            else if (z == 1) cubes.AddRange(SliceGroups[Slices.Back_Z]);
+        }
+
+        return cubes.Select(cube => cube).ToArray();
+    }
+
     private GameObject[,,] _cubes = new GameObject[3, 3, 3];
     private Color[] _faceColors = { Color.white, Color.yellow, Color.blue, Color.green, Color.red, new Color(1.0f, 0.5f, 0.0f) };
     [SerializeField] private GameObject _cubePrefab;
+
+
 }

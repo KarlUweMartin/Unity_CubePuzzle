@@ -95,6 +95,6 @@ public static class LogicModel
     }
 
 
-    private static bool _isAnimating;
+    private static bool _isAnimating = false;
     private static List<Moves> _puzzleSteps = new();
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -43,21 +44,33 @@ public class DragDetector : MonoBehaviour
     private void DetectDirection()
     {
         var dragDistance = Vector2.Distance(_startPosition, _liveInputPosition);
-        Debug.Log(dragDistance);
-  
-        if (dragDistance > _dragThreshhold) 
+        if (dragDistance > _dragThreshhold)
         {
             Ray ray = Camera.main.ScreenPointToRay(_liveInputPosition);
             if (Physics.Raycast(ray, out var hit))
             {
                 isDragging = false;
                 _secondHit = hit.point;
-                var dragVector = (_secondHit - _firstHit).normalized;
-                Debug.DrawRay(_firstHit, dragVector, Color.green, 3);
+                var rawDragVector = (_secondHit - _firstHit).normalized;
 
-                OnDrag.Invoke(dragVector);
+                Debug.DrawRay(_firstHit, rawDragVector * 2, Color.green, 5);
+
+                // Find the closest global direction
+                Vector3 globalDragVector = GetClosestGlobalDirection(rawDragVector);
+                Debug.DrawRay(_firstHit, globalDragVector * 5, Color.blue, 5);
+
+                OnDrag.Invoke(globalDragVector);
             }
         }
+    }
+
+    private Vector3 GetClosestGlobalDirection(Vector3 dragVector)
+    {
+        Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+
+        return directions
+            .OrderByDescending(dir => Vector3.Dot(dragVector, dir))
+            .First();
     }
 
     private void StartDrag(Vector2 position)
