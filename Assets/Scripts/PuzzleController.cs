@@ -21,35 +21,43 @@ public class PuzzleController : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            _generator.UpdateFaces();
             var face = DetectFace(Input.mousePosition);
 
             if (face.Item1 != null) 
             {
-                _possibleSlices = GetCorrespondingSlices(face.Item1, face.Item2).ToList();
+                GetCorrespondingSlices(face.Item1, face.Item2);
+                if(!_possibleSlices.Any()) return;
 
                 foreach (var slice in _possibleSlices) 
                 {
-                    var sliceCubes = _generator.FaceGroups[slice];
+                    var sliceCubes = _generator.SliceGroups[slice];
                     foreach (var cube in sliceCubes)
                     {
-                        cube.transform.DOScale(.8f, .15f).OnComplete(() =>
-                        {
-                            cube.transform.DOScale(1f, .3f);
-                        });
+                        //cube.transform.DOScale(.8f, .15f);
                     }
                 }
             }
-
         }
-        else if (Input.touchCount > 0) // Detects touch input
+
+        if (Input.GetMouseButtonUp(0)) 
         {
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began)
+            if (!_possibleSlices.Any()) return;
+
+            foreach (var slice in _possibleSlices)
             {
-                var f = DetectFace(touch.position);
-               // _> DO ME ALSO!
+                var sliceCubes = _generator.SliceGroups[slice];
+                foreach (var cube in sliceCubes)
+                {
+                    //cube.transform.DOScale(1f, .3f);
+                }
             }
+
+            _possibleSlices.Clear();
+        }
+
+        if (Input.touchCount > 0)
+        {
+            // TODO: Implement the same stuff for touch!
         }
 
         if (_shuffle)
@@ -59,7 +67,7 @@ public class PuzzleController : MonoBehaviour
 
         if (Input.GetKey(KeyCode.O))
         {
-            _actuator.Move(Moves.D);
+            _actuator.Move(Moves.D, .5f);
         }
     } 
 
@@ -68,27 +76,12 @@ public class PuzzleController : MonoBehaviour
         System.Random random = new System.Random();
         Moves[] moves = (Moves[])Enum.GetValues(typeof(Moves));
         Moves rndMove = moves[random.Next(moves.Length)];
-        _actuator.Move(rndMove);
+        _actuator.Move(rndMove, .1f);
     }
 
-    private void HandleDrag(DragDirections direction)
+    private void HandleDrag(Vector3 direction)
     {
-        if (!_possibleSlices.Any()) return;
-
-        if (direction == DragDirections.Up || direction == DragDirections.Down) 
-        {
-            if (_possibleSlices.Contains(Slices.Right_X)) 
-            {
-                
-            }
-        }
-
-        if (direction == DragDirections.Left || direction == DragDirections.Right)
-        {
-
-        }
-
-        _possibleSlices.Clear();
+        Debug.Log(direction);
     }
 
     private (GameObject, Faces) DetectFace(Vector2 inputPos)
@@ -133,62 +126,29 @@ public class PuzzleController : MonoBehaviour
         return (null, Faces.Front);
     }
 
-    private Slices[] GetCorrespondingSlices(GameObject cube, Faces clickedFace)
+    private void GetCorrespondingSlices(GameObject cube, Faces clickedFace)
     {
-        List<Slices> possibleSlices = new();
+        _possibleSlices.Clear();
 
-        foreach (var entry in _generator.FaceGroups)
+        foreach (var entry in _generator.SliceGroups)
         {
             if (entry.Value.Contains(cube))
             {
-                possibleSlices.Add(entry.Key);
+                _possibleSlices.Add(entry.Key);
             }
         }
 
-        /*
-        var faceDirectionWorld = GetFaceNormal(clickedFace);
-        var faceDirectionLocal = cube.transform.InverseTransformDirection(faceDirectionWorld);
-        possibleSlices.RemoveAll(slice =>
-            _puzzle.FaceGroups[slice].All(faceCube => IsMatchingLocalPosition(faceCube, faceDirectionLocal)));
-        */
-
-        Debug.Log($"Corresponding slices: {string.Join(",", possibleSlices)}");
-
-        return possibleSlices.ToArray();
-    }
-
-    private Vector3 GetFaceNormal(Faces face)
-    {
-        return face switch
+        switch (clickedFace) 
         {
-            Faces.Back => Vector3.forward,
-            Faces.Front => Vector3.back,
-            Faces.Left => Vector3.left,
-            Faces.Right => Vector3.right,
-            Faces.Top => Vector3.up,
-            Faces.Bottom => Vector3.down,
-            _ => Vector3.zero
-        };
-    }
-
-    private bool IsMatchingLocalPosition(GameObject cube, Vector3 faceDirectionLocal)
-    {
-        var localPos = cube.transform.localPosition;
-
-        if (Mathf.Abs(faceDirectionLocal.x) > Mathf.Abs(faceDirectionLocal.y) &&
-            Mathf.Abs(faceDirectionLocal.x) > Mathf.Abs(faceDirectionLocal.z))
-        {
-            return Mathf.RoundToInt(localPos.x) == Mathf.RoundToInt(faceDirectionLocal.x);
+            case Faces.Front: _possibleSlices.Remove(Slices.Front_Z); break;
+            case Faces.Back: _possibleSlices.Remove(Slices.Back_Z); break;
+            case Faces.Left: _possibleSlices.Remove(Slices.Left_X); break;
+            case Faces.Right: _possibleSlices.Remove(Slices.Right_X); break;
+            case Faces.Bottom: _possibleSlices.Remove(Slices.Down_Y); break;
+            case Faces.Top: _possibleSlices.Remove(Slices.Up_Y); break;
         }
-        else if (Mathf.Abs(faceDirectionLocal.y) > Mathf.Abs(faceDirectionLocal.x) &&
-                 Mathf.Abs(faceDirectionLocal.y) > Mathf.Abs(faceDirectionLocal.z))
-        {
-            return Mathf.RoundToInt(localPos.y) == Mathf.RoundToInt(faceDirectionLocal.y);
-        }
-        else
-        {
-            return Mathf.RoundToInt(localPos.z) == Mathf.RoundToInt(faceDirectionLocal.z);
-        }
+
+        Debug.Log($"Corresponding slices: {string.Join(",", _possibleSlices)}");
     }
 
     [SerializeField] private Toggle _shuffleButton;

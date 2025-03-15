@@ -4,11 +4,12 @@ using static LogicModel;
 
 public class PuzzleGenerator : MonoBehaviour
 {
-    public Dictionary<Slices, List<GameObject>> FaceGroups = new();
+    public Dictionary<Slices, List<GameObject>> SliceGroups = new();
 
     private void Start()
     {
         ResetCube();
+        OnAnimationComplete.AddListener(UpdateFaces);
     }
 
     public void ResetCube()
@@ -19,44 +20,6 @@ public class PuzzleGenerator : MonoBehaviour
         }
         Initiate();
     }
-
-    public void UpdateFaces()
-    {
-        FaceGroups.Clear();
-        foreach (Slices face in System.Enum.GetValues(typeof(Slices)))
-        {
-            FaceGroups[face] = new List<GameObject>();
-        }
-
-        Vector3 forward = (Camera.main.transform.position - transform.position).normalized;
-        Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
-        Vector3 up = Vector3.Cross(forward, right).normalized;
-
-        foreach (var cube in _cubes)
-        {
-            if (cube == null) continue;
-
-            Vector3 pos = cube.transform.position;
-            Vector3 localPos = transform.InverseTransformPoint(pos);
-
-            int x = Mathf.RoundToInt(localPos.x);
-            int y = Mathf.RoundToInt(localPos.y);
-            int z = Mathf.RoundToInt(localPos.z);
-
-            if (x == -1) FaceGroups[Slices.Left_X].Add(cube);
-            if (x == 0) FaceGroups[Slices.Middle_X].Add(cube);
-            if (x == 1) FaceGroups[Slices.Right_X].Add(cube);
-
-            if (y == 1) FaceGroups[Slices.Up_Y].Add(cube);
-            if (y == 0) FaceGroups[Slices.Equator_Y].Add(cube);
-            if (y == -1) FaceGroups[Slices.Down_Y].Add(cube);
-
-            if (z == -1) FaceGroups[Slices.Front_Z].Add(cube);
-            if (z == 0) FaceGroups[Slices.Standing_Z].Add(cube);
-            if (z == 1) FaceGroups[Slices.Back_Z].Add(cube);
-        }
-    }
-
 
     private void Initiate()
     {
@@ -106,6 +69,43 @@ public class PuzzleGenerator : MonoBehaviour
         mat.color = color;
         face.GetComponent<MeshRenderer>().material = mat;
         Destroy(face.GetComponent<Collider>());
+    }
+
+    private void UpdateFaces()
+    {
+        SliceGroups.Clear();
+        foreach (Slices face in System.Enum.GetValues(typeof(Slices)))
+        {
+            SliceGroups[face] = new List<GameObject>();
+        }
+
+        Vector3 forward = (Camera.main.transform.position - transform.position).normalized;
+        Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+        Vector3 up = Vector3.Cross(forward, right).normalized;
+
+        foreach (var cube in _cubes)
+        {
+            if (cube == null) continue;
+
+            Vector3 pos = cube.transform.position;
+            Vector3 localPos = transform.InverseTransformPoint(pos);
+
+            int x = Mathf.RoundToInt(localPos.x);
+            int y = Mathf.RoundToInt(localPos.y);
+            int z = Mathf.RoundToInt(localPos.z);
+
+            if (x == -1) SliceGroups[Slices.Left_X].Add(cube);
+            if (x == 0) SliceGroups[Slices.Middle_X].Add(cube);
+            if (x == 1) SliceGroups[Slices.Right_X].Add(cube);
+
+            if (y == 1) SliceGroups[Slices.Up_Y].Add(cube);
+            if (y == 0) SliceGroups[Slices.Equator_Y].Add(cube);
+            if (y == -1) SliceGroups[Slices.Down_Y].Add(cube);
+
+            if (z == -1) SliceGroups[Slices.Front_Z].Add(cube);
+            if (z == 0) SliceGroups[Slices.Standing_Z].Add(cube);
+            if (z == 1) SliceGroups[Slices.Back_Z].Add(cube);
+        }
     }
 
     private GameObject[,,] _cubes = new GameObject[3, 3, 3];

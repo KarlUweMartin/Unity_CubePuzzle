@@ -2,11 +2,29 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Events;
 
-public static class LogicModel 
+public static class LogicModel
 {
     static public UnityEvent<int> OnStepCountChanged = new();
     static public UnityEvent<Moves> OnStepAdded = new();
     static public UnityEvent<Moves> OnStepBack = new();
+
+    static public bool IsAnimating 
+    {
+        get => _isAnimating;
+        set
+        {
+            if (_isAnimating != value) 
+            {
+                if (!value) 
+                {
+                    OnAnimationComplete.Invoke();
+                }
+            }
+            _isAnimating = value;
+
+        }
+    }
+    static public UnityEvent OnAnimationComplete = new();
 
 
     public static bool AnySteps() => _puzzleSteps.Count > 0;
@@ -77,5 +95,6 @@ public static class LogicModel
     }
 
 
+    private static bool _isAnimating;
     private static List<Moves> _puzzleSteps = new();
 }

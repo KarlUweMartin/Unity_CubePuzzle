@@ -3,16 +3,7 @@ using UnityEngine.Events;
 
 public class DragDetector : MonoBehaviour
 {
-    private Vector2 startPos;
-    private Vector2 endPos;
-    private bool isDragging = false;
-
-    public enum DragDirections
-    {
-        Left, Right, Up, Down
-    }
-
-    public UnityEvent<DragDirections> OnDrag = new();
+    public UnityEvent<Vector3> OnDrag = new();
 
     void Update()
     {
@@ -33,43 +24,63 @@ public class DragDetector : MonoBehaviour
         {
             EndDrag(Input.GetTouch(0).position);
         }
+
+        if (Input.GetMouseButton(0))
+        {
+            _liveInputPosition = Input.mousePosition;
+        }
+        else if (Input.touchCount > 1)
+        {
+            _liveInputPosition = Input.GetTouch(0).position;
+        }
+
+        if (isDragging)
+        {
+            DetectDirection();
+        }
+    }
+
+    private void DetectDirection()
+    {
+        var dragDistance = Vector2.Distance(_startPosition, _liveInputPosition);
+        Debug.Log(dragDistance);
+  
+        if (dragDistance > _dragThreshhold) 
+        {
+            Ray ray = Camera.main.ScreenPointToRay(_liveInputPosition);
+            if (Physics.Raycast(ray, out var hit))
+            {
+                isDragging = false;
+                _secondHit = hit.point;
+                var dragVector = (_secondHit - _firstHit).normalized;
+                Debug.DrawRay(_firstHit, dragVector, Color.green, 3);
+
+                OnDrag.Invoke(dragVector);
+            }
+        }
     }
 
     private void StartDrag(Vector2 position)
     {
-        startPos = position;
-        isDragging = true;
+        Ray ray = Camera.main.ScreenPointToRay(position);
+        if (Physics.Raycast(ray, out var hit))
+        {
+            isDragging = true;
+            _startPosition = position;
+            _firstHit = hit.point;
+        }
     }
 
     private void EndDrag(Vector2 position)
     {
-        if (!isDragging) return;
-
-        endPos = position;
-        DetectDragDirection();
         isDragging = false;
     }
+  
+    private Vector2 _startPosition, _liveInputPosition;
 
-    private void DetectDragDirection()
-    {
-        Vector2 dragVector = endPos - startPos;
+    private Vector3 _firstHit, _secondHit;
+    private bool isDragging = false;
 
-        if (dragVector.magnitude < 50f) // Ignore very small drags
-            return;
+    private int _dragThreshhold = 25; 
 
-        if (Mathf.Abs(dragVector.x) > Mathf.Abs(dragVector.y))
-        {
-            if (dragVector.x > 0)
-                OnDrag.Invoke(DragDirections.Right);
-            else
-                OnDrag.Invoke(DragDirections.Left);
-        }
-        else
-        {
-            if (dragVector.y > 0)
-                OnDrag.Invoke(DragDirections.Up);
-            else
-                OnDrag.Invoke(DragDirections.Down);
-        }
-    }
 }

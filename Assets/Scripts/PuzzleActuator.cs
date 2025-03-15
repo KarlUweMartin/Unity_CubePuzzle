@@ -11,7 +11,7 @@ public class PuzzleActuator : MonoBehaviour
         DOTween.Init();
     }
 
-    public void Move(Moves move)
+    public void Move(Moves move, float speed)
     {
         var moveMap = new Dictionary<Moves, (Slices, bool)>
         {
@@ -45,16 +45,18 @@ public class PuzzleActuator : MonoBehaviour
 
         if (moveMap.TryGetValue(move, out var rotation))
         {
-            RotateFace(rotation.Item1, rotation.Item2);
+            RotateFace(rotation.Item1, rotation.Item2, speed);
         }
+
+        Debug.Log("Actuated move: " + move);
     }
 
-    private void RotateFace(Slices face, bool clockwise)
+    private void RotateFace(Slices face, bool clockwise, float speed = .5f)
     {
-        if (_isAnimating) return;
-        _isAnimating = true;
+        if (!IsAnimating) return;
+        IsAnimating = true;
 
-        List<GameObject> cubesToRotate = _generator.FaceGroups[face];
+        List<GameObject> cubesToRotate = _generator.SliceGroups[face];
         if (_pivot == null)
         {
             _pivot = new GameObject("Pivot");
@@ -85,7 +87,8 @@ public class PuzzleActuator : MonoBehaviour
         var targetAngle = clockwise ? 90f : -90f;
 
         _pivot.transform.DOComplete();
-        _pivot.transform.DOLocalRotate(localAxis * targetAngle, 0.5f, RotateMode.LocalAxisAdd)
+
+        _pivot.transform.DOLocalRotate(localAxis * targetAngle, speed, RotateMode.LocalAxisAdd)
             .SetEase(Ease.InSine)
             .OnComplete(() =>
             {
@@ -94,15 +97,11 @@ public class PuzzleActuator : MonoBehaviour
                     cube.transform.SetParent(transform);
                 }
 
-                _generator.UpdateFaces();
-                _isAnimating = false;
+                IsAnimating = false;
             });
-
-        Debug.Log(face + " " + targetAngle);
     }
 
     private GameObject _pivot;
-    private bool _isAnimating = false;
 
     [SerializeField] private PuzzleGenerator _generator;
 }
