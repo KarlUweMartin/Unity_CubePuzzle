@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.iOS;
 using UnityEngine.UI;
 using static LogicModel;
 
@@ -11,8 +9,6 @@ public class UserInterface : MonoBehaviour
 {
     private void Start()
     {
-        PlayerSettings.iOS.deferSystemGesturesMode = SystemGestureDeferMode.All;
-
         //OnStepAdded.AddListener(HandleNewStep);
         //OnStepBack.AddListener(HandleStepBack);
         OnStepCountChanged.AddListener(HandleStepCountChanged);
