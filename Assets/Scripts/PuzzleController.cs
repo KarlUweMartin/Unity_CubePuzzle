@@ -1,12 +1,14 @@
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
+using static LogicModel;
 
 
 public class PuzzleController : MonoBehaviour
 {
     private void Start()
     {
+        DOTween.Init();
         _shuffleButton.onValueChanged.AddListener((v) => { _shuffle = v; });
         _dragDetector.OnDrag.AddListener(HandleDrag);
     }
@@ -28,7 +30,6 @@ public class PuzzleController : MonoBehaviour
             foreach (var cube in _sliceCubes)
             {
                 cube.transform.DOScale(1f, .05f);
-                cube.GetComponent<MeshRenderer>().enabled = true;
             }
         }
 
@@ -68,15 +69,58 @@ public class PuzzleController : MonoBehaviour
             cube.transform.DOScale(1.1f, .05f);
         }
 
-        _actuator.RotateSlice(_sliceCubes, dragVector);
+        var rotationDirection = Vector3.zero;
+        if(dragVector == Vector3.up) rotationDirection = Vector3.left;
+        if(dragVector == Vector3.down) rotationDirection = Vector3.right;
+        if(dragVector == Vector3.left) rotationDirection = Vector3.down;
+        if(dragVector == Vector3.right) rotationDirection = Vector3.up;
+        if(dragVector == Vector3.forward) rotationDirection = Vector3.back;
+        if(dragVector == Vector3.back) rotationDirection = Vector3.forward;
+
+        if (rotationDirection == Vector3.zero) return;
+
+        RotateSlice(_sliceCubes, rotationDirection);
+    }
+
+    public void RotateSlice(GameObject[] sliceCubes, Vector3 direction, float speed = .5f)
+    {
+        if (IsAnimating) return;
+        IsAnimating = true;
+
+
+        if (_pivot == null)
+        {
+            _pivot = new GameObject();
+        }
+        _pivot.transform.SetParent(transform);
+        _pivot.transform.position = Vector3.zero;
+        _pivot.transform.localRotation = Quaternion.identity;
+
+        foreach (var cube in sliceCubes)
+        {
+            cube.transform.SetParent(_pivot.transform);
+        };
+
+        _pivot.transform.DOComplete();
+        _pivot.transform.DOLocalRotate(direction * 90, speed, RotateMode.LocalAxisAdd)
+            .SetEase(Ease.InSine)
+            .OnComplete(() =>
+            {
+                foreach (var cube in sliceCubes)
+                {
+                    cube.transform.SetParent(transform);
+                }
+
+                IsAnimating = false;
+            });
     }
 
 
     [SerializeField] private Toggle _shuffleButton;
-    [SerializeField] private PuzzleActuator _actuator;
     [SerializeField] private PuzzleGenerator _generator;
     [SerializeField] private DragDetector _dragDetector;
 
+    private GameObject _pivot;
     private GameObject _touchCube;
     private GameObject[] _sliceCubes;
     private bool _shuffle;

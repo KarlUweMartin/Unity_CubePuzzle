@@ -235,9 +235,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 393355147}
-  - component: {fileID: 393355148}
   - component: {fileID: 393355153}
   - component: {fileID: 393355152}
+  - component: {fileID: 393355148}
   m_Layer: 0
   m_Name: Puzzle
   m_TagString: Untagged
@@ -273,9 +273,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _shuffleButton: {fileID: 601903113}
-  _actuator: {fileID: 393355153}
   _generator: {fileID: 393355152}
-  _dragDetector: {fileID: 1552373403}
+  _dragDetector: {fileID: 393355153}
 --- !u!114 &393355152
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -298,10 +297,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 393355145}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9ad85b6f060c694f9777569f454f0af, type: 3}
+  m_Script: {fileID: 11500000, guid: 5c4f863b9cfb5bd40a02a474dd64722c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _generator: {fileID: 393355152}
+  OnDrag:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &434582215
 GameObject:
   m_ObjectHideFlags: 0
@@ -1016,7 +1017,6 @@ GameObject:
   - component: {fileID: 1552373402}
   - component: {fileID: 1552373401}
   - component: {fileID: 1552373400}
-  - component: {fileID: 1552373403}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -1074,21 +1074,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1552373403
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552373399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c4f863b9cfb5bd40a02a474dd64722c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  OnDrag:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

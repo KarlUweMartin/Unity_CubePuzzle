@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using static LogicModel;
 
@@ -120,21 +119,23 @@ public class PuzzleGenerator : MonoBehaviour
         int y = Mathf.RoundToInt(localPos.y);
         int z = Mathf.RoundToInt(localPos.z);
 
-        if (globalDirection == Vector3.right || globalDirection == Vector3.left)
+        if (globalDirection == Vector3.up || globalDirection == Vector3.down)
         {
             // X-axis slices
             if (x == -1) cubes.AddRange(SliceGroups[Slices.Left_X]);
             else if (x == 0) cubes.AddRange(SliceGroups[Slices.Middle_X]);
             else if (x == 1) cubes.AddRange(SliceGroups[Slices.Right_X]);
         }
-        else if (globalDirection == Vector3.up || globalDirection == Vector3.down)
+
+        if (globalDirection == Vector3.right || globalDirection == Vector3.left)
         {
             // Y-axis slices
             if (y == 1) cubes.AddRange(SliceGroups[Slices.Up_Y]);
             else if (y == 0) cubes.AddRange(SliceGroups[Slices.Equator_Y]);
             else if (y == -1) cubes.AddRange(SliceGroups[Slices.Down_Y]);
         }
-        else if (globalDirection == Vector3.forward || globalDirection == Vector3.back)
+
+        if (globalDirection == Vector3.forward || globalDirection == Vector3.back)
         {
             // Z-axis slices
             if (z == -1) cubes.AddRange(SliceGroups[Slices.Front_Z]);
