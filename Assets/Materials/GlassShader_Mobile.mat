@@ -29,12 +29,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Alpha: 0.351
-    - _HighlightThreshold: 0.019
+    - _Alpha: 0.379
+    - _HighlightThreshold: 0.177
     - _ReflectionIntensity: 1
     - _Smoothness: 1
     m_Colors:
     - _Color: {r: 1, g: 0.5372549, b: 0.6745098, a: 1}
     - _DarkTint: {r: 0.26415092, g: 0.13332146, b: 0.13332146, a: 1}
-    - _TintColor: {r: 0.92338854, g: 0.8066038, b: 1, a: 0}
+    - _TintColor: {r: 0.567, g: 0.567, b: 0.809, a: 1}
   m_BuildTextureStacks: []

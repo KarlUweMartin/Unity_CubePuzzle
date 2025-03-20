@@ -4,26 +4,28 @@ using UnityEngine.Events;
 
 public class DragDetector : MonoBehaviour
 {
-    public UnityEvent<Vector3> OnDrag = new();
+    public UnityEvent<Vector3> OnDragStart = new();
+    public UnityEvent<float> OnDragUpdate = new();
+    public UnityEvent OnDragEnd = new();
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0)) // Mouse Start Drag
+        if (Input.GetMouseButtonDown(0))
         {
             StartDrag(Input.mousePosition);
         }
-        else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) // Touch Start Drag
+        else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
         {
             StartDrag(Input.GetTouch(0).position);
         }
 
-        if (Input.GetMouseButtonUp(0) && isDragging) // Mouse End Drag
+        if (Input.GetMouseButtonUp(0) && _isDragging)
         {
-            EndDrag(Input.mousePosition);
+            EndDrag();
         }
-        else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) // Touch End Drag
+        else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended)
         {
-            EndDrag(Input.GetTouch(0).position);
+            EndDrag();
         }
 
         if (Input.GetMouseButton(0))
@@ -35,34 +37,52 @@ public class DragDetector : MonoBehaviour
             _liveInputPosition = Input.GetTouch(0).position;
         }
 
-        if (isDragging)
+        if (_isDragging)
         {
-            DetectDirection();
+            DetectDrag();
+        }
+
+        if (_dragStarted) 
+        {
+            OnDragUpdate.Invoke(_dragDistance - _dragThreshhold);
         }
     }
 
-    private void DetectDirection()
+    private void DetectDrag()
     {
-        var dragDistance = Vector2.Distance(_startPosition, _liveInputPosition);
-        if (dragDistance > _dragThreshhold)
+        _dragDistance = Vector2.Distance(_startPosition, _liveInputPosition);
+
+        if (!_dragStarted && _dragDistance > _dragThreshhold)
         {
             Ray ray = Camera.main.ScreenPointToRay(_liveInputPosition);
             if (Physics.Raycast(ray, out var hit))
             {
-                isDragging = false;
+                _dragStarted = true;
                 _secondHit = hit.point;
                 var rawDragVector = (_secondHit - _firstHit).normalized;
 
-                Debug.DrawRay(_firstHit, rawDragVector * 2, Color.green, 5);
+                if (hit.transform.parent != null)
+                {
+                    var localDragVector = hit.transform.parent.InverseTransformDirection(rawDragVector);
+                    var localDragVectorNormalized = GetClosestLocalDirection(localDragVector);
+                    var localAxisAlignedDragVector = hit.transform.parent.TransformDirection(localDragVectorNormalized);
 
-                // Find the closest global direction
-                Vector3 globalDragVector = GetClosestGlobalDirection(rawDragVector);
-                Debug.DrawRay(_firstHit, globalDragVector * 5, Color.blue, 5);
+                    Debug.DrawRay(_firstHit, rawDragVector * 3, Color.yellow, 10);
+                    Debug.DrawRay(_firstHit, localDragVectorNormalized * 4, Color.cyan, 10);
+                    Debug.DrawRay(_firstHit, localAxisAlignedDragVector * 5, Color.green, 10);
 
-                OnDrag.Invoke(globalDragVector);
+                    OnDragStart.Invoke(localAxisAlignedDragVector);
+                }
             }
         }
     }
+
+    private Vector3 GetClosestLocalDirection(Vector3 localDirection)
+    {
+        Vector3[] localDirections = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
+        return localDirections.OrderBy(dir => Vector3.Angle(localDirection, dir)).First();
+    }
+
 
     private Vector3 GetClosestGlobalDirection(Vector3 dragVector)
     {
@@ -78,22 +98,27 @@ public class DragDetector : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(position);
         if (Physics.Raycast(ray, out var hit))
         {
-            isDragging = true;
+            _isDragging = true;
             _startPosition = position;
             _firstHit = hit.point;
         }
     }
 
-    private void EndDrag(Vector2 position)
+    private void EndDrag()
     {
-        isDragging = false;
+        _isDragging = false;
+        _dragStarted = false;
+        _dragDistance = 0;
+
+        OnDragEnd.Invoke();
     }
   
     private Vector2 _startPosition, _liveInputPosition;
 
     private Vector3 _firstHit, _secondHit;
-    private bool isDragging = false;
+    private bool _isDragging = false;
+    private bool _dragStarted = false;
 
-    private int _dragThreshhold = 25; 
-
+    private int _dragThreshhold = 12;
+    private float _dragDistance = 0;
 }

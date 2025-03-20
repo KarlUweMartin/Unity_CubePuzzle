@@ -2,35 +2,31 @@
 
 public class RotateByDrag : MonoBehaviour
 {
-    [SerializeField] private float _rotationSpeed = 20f;
-    [SerializeField] private bool _localX, _localY, _invertX, _invertY = false;
-
-    private Vector2 _lastMousePosition;
-    private bool _isDragging = false;
-
-    void Update()
+    private void Start()
     {
-        if (!_isDragging && IsPointerOverCollider()) return; 
+        _cam = Camera.main;
+        _worldUp = _invertX ? -_cam.transform.up : _cam.transform.up;
+        _worldRight = _invertY ? -_cam.transform.right : _cam.transform.right;
+    }
 
+    private void Update()
+    {
         HandleTouchInput();
         HandleMouseInput();
     }
 
-    void HandleMouseInput()
+    private void HandleMouseInput()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (!IsPointerOverCollider() && Input.GetMouseButtonDown(0))
         {
-            if (IsPointerOverCollider()) return; 
-
             _isDragging = true;
             _lastMousePosition = Input.mousePosition;
         }
-        else if (Input.GetMouseButtonUp(0)) 
+        else if(Input.GetMouseButtonUp(0)) 
         {
             _isDragging = false;
         }
-
-        if (_isDragging)
+        else if(_isDragging)
         {
             Vector2 delta = (Vector2)Input.mousePosition - _lastMousePosition;
             RotateObject(delta);
@@ -38,19 +34,21 @@ public class RotateByDrag : MonoBehaviour
         }
     }
 
-    void HandleTouchInput()
+    private void HandleTouchInput()
     {
-        if (Input.touchCount == 1)
+        if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
-
-            if (touch.phase == TouchPhase.Began)
+            if (!IsPointerOverCollider() && touch.phase == TouchPhase.Began)
             {
-                if (IsPointerOverCollider()) return; 
-
+                _isDragging = true;
                 _lastMousePosition = touch.position;
             }
-            else if (touch.phase == TouchPhase.Moved)
+            else if(touch.phase == TouchPhase.Ended)
+            {
+                _isDragging = false;
+            }
+            else if(_isDragging && touch.phase == TouchPhase.Moved)
             {
                 Vector2 delta = touch.position - _lastMousePosition;
                 RotateObject(delta);
@@ -59,27 +57,32 @@ public class RotateByDrag : MonoBehaviour
         }
     }
 
-    void RotateObject(Vector2 delta)
+    private void RotateObject(Vector2 delta)
     {
-        Vector3 worldUp = _invertX ? Vector3.down : Vector3.up;
-        Vector3 worldRight = _invertY ? -Camera.main.transform.right : Camera.main.transform.right;
-
-        transform.Rotate(worldUp, delta.x * _rotationSpeed * Time.deltaTime, _localX ? Space.Self : Space.World);
-        transform.Rotate(worldRight, delta.y * _rotationSpeed * Time.deltaTime, _localY ? Space.Self : Space.World);
+        transform.Rotate(_worldUp, delta.x * _rotationSpeed * Time.deltaTime, Space.World);
+        transform.Rotate(_worldRight, delta.y * _rotationSpeed * Time.deltaTime, Space.World);
     }
 
-    bool IsPointerOverCollider()
+    private bool IsPointerOverCollider()
     {
         Ray ray;
         if (Input.touchCount > 0)
         {
-            ray = Camera.main.ScreenPointToRay(Input.GetTouch(0).position);
+            ray = _cam.ScreenPointToRay(Input.GetTouch(0).position);
         }
         else
         {
-            ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            ray = _cam.ScreenPointToRay(Input.mousePosition);
         }
 
-        return Physics.Raycast(ray, out RaycastHit hit);
+        return Physics.Raycast(ray, out var hit);
     }
+
+    [SerializeField] private float _rotationSpeed = 20f;
+    [SerializeField] private bool _invertX, _invertY = false;
+
+    private Camera _cam;
+    private Vector3 _worldUp, _worldRight;
+    private Vector2 _lastMousePosition;
+    private bool _isDragging = false;
 }

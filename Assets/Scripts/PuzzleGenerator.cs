@@ -1,3 +1,5 @@
+﻿using DG.Tweening;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -5,12 +7,10 @@ using static LogicModel;
 
 public class PuzzleGenerator : MonoBehaviour
 {
-    public Dictionary<Slices, List<GameObject>> SliceGroups = new();
-
     private void Start()
     {
         ResetCube();
-        OnAnimationComplete.AddListener(UpdateFaces);
+        //OnAnimationComplete.AddListener(UpdateFaces);
     }
 
     public void ResetCube()
@@ -23,6 +23,123 @@ public class PuzzleGenerator : MonoBehaviour
         Initiate();
     }
 
+    public GameObject[] GetSliceCubes(GameObject singleCube, Vector3 dragVector, Vector3 touchPoint)
+    {
+        var localPos = singleCube.transform.position;
+        var parentPos = singleCube.transform.parent.position;
+
+        Ray ray = new(localPos, dragVector);
+        var p2 = ray.GetPoint(2f);
+
+        Vector3 p3 = singleCube.transform.parent.position;
+        if ((localPos.x == 0 && localPos.y == 0) || (localPos.x == 0 && localPos.z == 0) || (localPos.y == 0 && localPos.z == 0)) // Center cubes
+        {
+            p3 = singleCube.transform.parent.position;
+        }
+        else
+        {
+            var distanceToCenter = Vector3.Distance(localPos, parentPos);
+            if (distanceToCenter > 1.4f && distanceToCenter < 1.5f)
+            {
+                if (Physics.Raycast(ray, out var hit))
+                {
+                    Ray ray2 = new(hit.transform.position, dragVector);
+                    if (Physics.Raycast(ray2, out var hit2)) // Middle cube with 2 neighbours in the drag direction
+                    {
+                        ray = new(parentPos, dragVector);
+                        p3 = ray.GetPoint(1);
+                    }
+                    else // Middle cube with 1 neighbour in the drag direction
+                    {
+                        p3 = GetAxisCube(singleCube, dragVector, touchPoint).transform.position;
+                    }
+                }
+                else // Middle cube with no neighbour in the drag direction
+                {
+                    ray = new(parentPos, dragVector);
+                    p3 = ray.GetPoint(1);
+                }
+            }
+            else if (distanceToCenter > 1.7f) // Corner cubes
+            {
+                p3 = GetAxisCube(singleCube, dragVector, touchPoint).transform.position;
+            }
+        }
+
+        var slicePlane = new Plane(singleCube.transform.position, p2, p3);
+
+        var axisProbe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        axisProbe.transform.position = singleCube.transform.position;
+        axisProbe.transform.up = slicePlane.normal;
+        axisProbe.transform.localScale = new Vector3(25f, 0.1f, 25f);
+        axisProbe.AddComponent<BoxCollider>().isTrigger = true;
+
+        var hitColliders = Physics.OverlapBox(
+            axisProbe.transform.position,
+            axisProbe.transform.lossyScale / 2,
+            axisProbe.transform.rotation
+        );
+        Destroy(axisProbe);
+
+        var cubes = new List<GameObject>();
+        foreach (var collider in hitColliders)
+        {
+            if (collider.gameObject.CompareTag("SingleCube"))
+            {
+                cubes.Add(collider.gameObject);
+            }
+        }
+
+        return cubes.ToArray();
+    }
+
+  
+
+    private GameObject GetAxisCube(GameObject cube, Vector3 dragVector, Vector3 touchPoint)
+    {
+
+        var dragVectors = new[] { dragVector, -dragVector };
+        List<GameObject> alignedCenterCubes = new();
+        foreach (var direction in dragVectors)
+        {
+            if (Physics.Raycast(cube.transform.parent.position, direction, out var hit))
+            {
+                alignedCenterCubes.Add(hit.collider.gameObject);
+            }
+        }
+
+        var x = Mathf.RoundToInt(cube.transform.localPosition.x);
+        var y = Mathf.RoundToInt(cube.transform.localPosition.y);
+        var z = Mathf.RoundToInt(cube.transform.localPosition.z);
+        var centerCubes = new List<GameObject>();
+        foreach (var otherCube in _cubes) 
+        {
+            if (otherCube == null) continue;
+
+            if (otherCube.transform.localPosition == new Vector3(x, 0, 0) ||
+                otherCube.transform.localPosition == new Vector3(0, y, 0) ||
+                (otherCube.transform.localPosition == new Vector3(0, 0, z)))
+            {
+                if(alignedCenterCubes.Contains(otherCube)) continue;
+                centerCubes.Add(otherCube);
+            }
+        }
+
+        float longestDistance = 0;
+        GameObject axisCube = null; 
+        foreach (var centerCube in centerCubes) 
+        {
+            var dist = Vector3.Distance(touchPoint, centerCube.transform.position);
+            if (dist > longestDistance) 
+            {
+                longestDistance = dist;
+                axisCube = centerCube;
+            }
+        }
+
+        return axisCube;
+    }
+
     private void Initiate()
     {
         for (int x = 0; x < 3; x++)
@@ -33,7 +150,8 @@ public class PuzzleGenerator : MonoBehaviour
                 {
                     if (x == 1 && y == 1 && z == 1) continue;
 
-                    GameObject cube = Instantiate(_cubePrefab, transform);
+                    var cube = Instantiate(_cubePrefab, transform);
+                    cube.tag = "SingleCube";
                     cube.transform.localPosition = new Vector3(x - 1, y - 1, z - 1);
                     cube.name = $"C_{x}{y}{z}";
 
@@ -42,7 +160,6 @@ public class PuzzleGenerator : MonoBehaviour
                 }
             }
         }
-        UpdateFaces();
     }
 
     private void AddFaceColors(GameObject cube, int x, int y, int z)
@@ -73,82 +190,7 @@ public class PuzzleGenerator : MonoBehaviour
         Destroy(face.GetComponent<Collider>());
     }
 
-    private void UpdateFaces()
-    {
-        SliceGroups.Clear();
-        foreach (Slices face in System.Enum.GetValues(typeof(Slices)))
-        {
-            SliceGroups[face] = new List<GameObject>();
-        }
-
-        Vector3 forward = (Camera.main.transform.position - transform.position).normalized;
-        Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
-        Vector3 up = Vector3.Cross(forward, right).normalized;
-
-        foreach (var cube in _cubes)
-        {
-            if (cube == null) continue;
-
-            Vector3 pos = cube.transform.position;
-            Vector3 localPos = transform.InverseTransformPoint(pos);
-
-            int x = Mathf.RoundToInt(localPos.x);
-            int y = Mathf.RoundToInt(localPos.y);
-            int z = Mathf.RoundToInt(localPos.z);
-
-            if (x == -1) SliceGroups[Slices.Left_X].Add(cube);
-            if (x == 0) SliceGroups[Slices.Middle_X].Add(cube);
-            if (x == 1) SliceGroups[Slices.Right_X].Add(cube);
-
-            if (y == 1) SliceGroups[Slices.Up_Y].Add(cube);
-            if (y == 0) SliceGroups[Slices.Equator_Y].Add(cube);
-            if (y == -1) SliceGroups[Slices.Down_Y].Add(cube);
-
-            if (z == -1) SliceGroups[Slices.Front_Z].Add(cube);
-            if (z == 0) SliceGroups[Slices.Standing_Z].Add(cube);
-            if (z == 1) SliceGroups[Slices.Back_Z].Add(cube);
-        }
-    }
-
-    public GameObject[] GetSliceFromDirection(GameObject singleCube, Vector3 globalDirection)
-    {
-        var cubes = new List<GameObject>();
-
-        Vector3 localPos = transform.InverseTransformPoint(singleCube.transform.position);
-        int x = Mathf.RoundToInt(localPos.x);
-        int y = Mathf.RoundToInt(localPos.y);
-        int z = Mathf.RoundToInt(localPos.z);
-
-        if (globalDirection == Vector3.up || globalDirection == Vector3.down)
-        {
-            // X-axis slices
-            if (x == -1) cubes.AddRange(SliceGroups[Slices.Left_X]);
-            else if (x == 0) cubes.AddRange(SliceGroups[Slices.Middle_X]);
-            else if (x == 1) cubes.AddRange(SliceGroups[Slices.Right_X]);
-        }
-
-        if (globalDirection == Vector3.right || globalDirection == Vector3.left)
-        {
-            // Y-axis slices
-            if (y == 1) cubes.AddRange(SliceGroups[Slices.Up_Y]);
-            else if (y == 0) cubes.AddRange(SliceGroups[Slices.Equator_Y]);
-            else if (y == -1) cubes.AddRange(SliceGroups[Slices.Down_Y]);
-        }
-
-        if (globalDirection == Vector3.forward || globalDirection == Vector3.back)
-        {
-            // Z-axis slices
-            if (z == -1) cubes.AddRange(SliceGroups[Slices.Front_Z]);
-            else if (z == 0) cubes.AddRange(SliceGroups[Slices.Standing_Z]);
-            else if (z == 1) cubes.AddRange(SliceGroups[Slices.Back_Z]);
-        }
-
-        return cubes.Select(cube => cube).ToArray();
-    }
-
     private GameObject[,,] _cubes = new GameObject[3, 3, 3];
     private Color[] _faceColors = { Color.white, Color.yellow, Color.blue, Color.green, Color.red, new Color(1.0f, 0.5f, 0.0f) };
     [SerializeField] private GameObject _cubePrefab;
-
-
 }
