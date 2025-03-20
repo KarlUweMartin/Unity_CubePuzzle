@@ -67,10 +67,6 @@ public class DragDetector : MonoBehaviour
                     var localDragVectorNormalized = GetClosestLocalDirection(localDragVector);
                     var localAxisAlignedDragVector = hit.transform.parent.TransformDirection(localDragVectorNormalized);
 
-                    Debug.DrawRay(_firstHit, rawDragVector * 3, Color.yellow, 10);
-                    Debug.DrawRay(_firstHit, localDragVectorNormalized * 4, Color.cyan, 10);
-                    Debug.DrawRay(_firstHit, localAxisAlignedDragVector * 5, Color.green, 10);
-
                     OnDragStart.Invoke(localAxisAlignedDragVector);
                 }
             }
@@ -81,16 +77,6 @@ public class DragDetector : MonoBehaviour
     {
         Vector3[] localDirections = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
         return localDirections.OrderBy(dir => Vector3.Angle(localDirection, dir)).First();
-    }
-
-
-    private Vector3 GetClosestGlobalDirection(Vector3 dragVector)
-    {
-        Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
-
-        return directions
-            .OrderByDescending(dir => Vector3.Dot(dragVector, dir))
-            .First();
     }
 
     private void StartDrag(Vector2 position)
