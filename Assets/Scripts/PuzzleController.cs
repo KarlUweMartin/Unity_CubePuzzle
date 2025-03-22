@@ -1,10 +1,8 @@
 using DG.Tweening;
-using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using static LogicModel;
-
 
 public class PuzzleController : MonoBehaviour
 {
@@ -44,49 +42,53 @@ public class PuzzleController : MonoBehaviour
             Randomize();
         }
 
-        if (Input.GetKey(KeyCode.O))
+        if (Input.GetKeyDown(KeyCode.O))
         {
-            _generator.ResetCube(); 
+            Randomize();
         }
     } 
 
     public void Randomize()
     {
-        /*
+        if (IsAnimating) return;
+
         var rnd = new System.Random();
-        var moves = (Slices[])Enum.GetValues(typeof(Slices));
-        var chosenSlice = moves[rnd.Next(moves.Length)];
-        var negative = rnd.Next(2) == 0;
+        var directions = new Vector3[] { Vector3.down, Vector3.up, Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
 
-        switch (chosenSlice)
+        _touchCube = _generator.RandomCube();
+        _localDragDirection = directions[rnd.Next(0, directions.Length)];
+
+        var camPos = Camera.main.transform.position;
+        var ray = new Ray(camPos, (_touchCube.transform.position - camPos) * 5);
+        if (Physics.Raycast(ray, out var hit)) 
         {
-            case Slices.Right_X:
-            case Slices.Left_X:
-            case Slices.Middle_X:
-                RotateSlice(chosenSlice, negative ? Vector3.left : Vector3.left, .1f);
-                return;
-
-            case Slices.Down_Y:
-            case Slices.Up_Y:
-            case Slices.Equator_Y:
-                RotateSlice(chosenSlice, negative ? Vector3.down : Vector3.up, .1f);
-                return;
-
-            case Slices.Standing_Z:
-            case Slices.Back_Z:
-            case Slices.Front_Z:
-                RotateSlice(chosenSlice, negative ? Vector3.back : Vector3.forward, .1f);
-                return;
+            _touchPoint = hit.point;
+            Debug.Log(hit.transform.name);
         }
-        */
+
+
+        Debug.DrawRay(camPos, (_touchCube.transform.position - camPos) * 5, Color.red, 1);
+
+        if (_localDragDirection != Vector3.zero && _touchCube != null && _touchPoint != Vector3.zero)
+        {
+            if (_pivot == null)
+            {
+                _pivot = new GameObject("Rotation Pivot");
+                _pivot.transform.SetParent(transform);
+            }
+            _pivot.transform.localRotation = Quaternion.identity;
+            _pivot.transform.position = Vector3.zero;
+
+            _sliceCubes = _generator.GetSliceCubes(_touchCube, _localDragDirection, _touchPoint);
+            UpdateDrag(46);
+            EndDrag();
+        }
+
     }
 
     private void StartDrag(Vector3 dragVector)
     {
-        Debug.Log("Drag start: " + dragVector);
-
         if (_touchCube == null || dragVector == Vector3.zero) return;
-        _dragVector = dragVector;
 
         _sliceCubes = _generator.GetSliceCubes(_touchCube, dragVector, _touchPoint);
         if (_pivot == null)
@@ -97,41 +99,56 @@ public class PuzzleController : MonoBehaviour
         _pivot.transform.localRotation = Quaternion.identity;
         _pivot.transform.position = Vector3.zero;
 
+        var sameX = true;
+        var sameY = true;
+        var sameZ = true;
+        var referencePosition = RoundVector(_sliceCubes[0].transform.localPosition);
+
         foreach (var cube in _sliceCubes) 
         {
+            var pos = RoundVector(cube.transform.localPosition);
+            if (pos.x != referencePosition.x) sameX = false;
+            if (pos.y != referencePosition.y) sameY = false;
+            if (pos.z != referencePosition.z) sameZ = false;
+
             cube.transform.SetParent(_pivot.transform);
+        }
+
+        if(sameX) 
+        {
+            _localDragDirection = Vector3.up;
+        }
+        else if (sameY)
+        {
+            _localDragDirection = Vector3.right;
+        }
+        else if (sameZ)
+        {
+            _localDragDirection = Vector3.back;
         }
     }
 
     private void UpdateDrag(float rotationAngle)
     {
-        Debug.Log("Drag amount: " + rotationAngle);
+        if(_sliceCubes == null || _localDragDirection == Vector3.zero) return;
 
-        if(_sliceCubes == null || _dragVector == Vector3.zero) return;
-
-        RotateAlongDrag(_sliceCubes, _dragVector, rotationAngle);
+        RotateAlongDrag(_sliceCubes, _localDragDirection, rotationAngle);
     }
 
     private void EndDrag()
     {
-        Debug.Log("End drag");
-
         if (_sliceCubes == null) return;
 
-        // Extract the local rotation Euler angles
-        Vector3 eulerAngles = _pivot.transform.localEulerAngles;
-
-        // Normalize angles to be within the range of -180 to 180
+        var eulerAngles = _pivot.transform.localEulerAngles;
         eulerAngles.x = (eulerAngles.x > 180) ? eulerAngles.x - 360 : eulerAngles.x;
         eulerAngles.y = (eulerAngles.y > 180) ? eulerAngles.y - 360 : eulerAngles.y;
         eulerAngles.z = (eulerAngles.z > 180) ? eulerAngles.z - 360 : eulerAngles.z;
 
-        // Determine the dominant axis (the one with the highest absolute value)
-        float absX = Mathf.Abs(eulerAngles.x);
-        float absY = Mathf.Abs(eulerAngles.y);
-        float absZ = Mathf.Abs(eulerAngles.z);
+        var absX = Mathf.Abs(eulerAngles.x);
+        var absY = Mathf.Abs(eulerAngles.y);
+        var absZ = Mathf.Abs(eulerAngles.z);
 
-        Vector3 alignedEuler = Vector3.zero;
+        var alignedEuler = Vector3.zero;
 
         if (absX > absY && absX > absZ)
         {
@@ -146,31 +163,32 @@ public class PuzzleController : MonoBehaviour
             alignedEuler = new Vector3(0, 0, Mathf.Round(eulerAngles.z / 90) * 90);
         }
 
-        Debug.Log(alignedEuler);
-
-        // Apply the rotation using DOTween
         _pivot.transform.DOLocalRotate(alignedEuler, .15f).OnComplete(() => 
         {
             foreach (var cube in _sliceCubes)
             {
                 cube.transform.SetParent(_pivot.transform.parent);
+                cube.transform.localPosition = RoundVector(cube.transform.localPosition);
             }
 
-            _dragVector = Vector3.zero;
+            _localDragDirection = Vector3.zero;
             _touchCube = null;
             _sliceCubes = null;
+            IsAnimating = false;
         });
     }
 
-    void RotateAlongDrag(GameObject[] sliceCubes, Vector3 dragVector, float angle)
+    private void RotateAlongDrag(GameObject[] sliceCubes, Vector3 dragVector, float amount)
     {
+        IsAnimating = true;
+
         Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
         var axis = directions.OrderByDescending(dir => Vector3.Dot(dragVector, dir)).First();
 
-        _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * angle;
+        _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * amount;
     }
 
-    public void RotateSlice(GameObject[] sliceCubes, Vector3 direction, float speed = .5f)
+    private void RotateSlice(GameObject[] sliceCubes, Vector3 direction, float speed = .5f)
     {
         if (IsAnimating) return;
         IsAnimating = true;
@@ -200,6 +218,7 @@ public class PuzzleController : MonoBehaviour
             });
     }
 
+    private Vector3 RoundVector(Vector3 value) => new Vector3(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y), Mathf.RoundToInt(value.z));
 
     [SerializeField] private Toggle _shuffleButton;
     [SerializeField] private PuzzleGenerator _generator;
@@ -208,7 +227,7 @@ public class PuzzleController : MonoBehaviour
     private GameObject _pivot;
     private GameObject _touchCube;
     private GameObject[] _sliceCubes;
-    private Vector3 _touchPoint, _dragVector;
+    private Vector3 _touchPoint, _localDragDirection;
 
     private bool _shuffle;
 }

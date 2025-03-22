@@ -44,7 +44,7 @@ public class DragDetector : MonoBehaviour
 
         if (_dragStarted) 
         {
-            OnDragUpdate.Invoke(_dragDistance - _dragThreshhold);
+            OnDragUpdate.Invoke((_dragDistance - _dragThreshhold) * .4f);
         }
     }
 
@@ -100,7 +100,6 @@ public class DragDetector : MonoBehaviour
     }
   
     private Vector2 _startPosition, _liveInputPosition;
-
     private Vector3 _firstHit, _secondHit;
     private bool _isDragging = false;
     private bool _dragStarted = false;

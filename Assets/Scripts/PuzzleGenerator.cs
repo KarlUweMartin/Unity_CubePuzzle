@@ -10,7 +10,6 @@ public class PuzzleGenerator : MonoBehaviour
     private void Start()
     {
         ResetCube();
-        //OnAnimationComplete.AddListener(UpdateFaces);
     }
 
     public void ResetCube()
@@ -21,6 +20,22 @@ public class PuzzleGenerator : MonoBehaviour
             Destroy(c);
         }
         Initiate();
+    }
+
+    public GameObject RandomCube() 
+    {
+        var rnd = new System.Random().Next(0, _cubes.Length-1);
+        int i = 0;
+
+        foreach (var cube in _cubes) 
+        {
+            if (cube == null) continue;
+
+            i++;
+            if(i == rnd) return cube;
+        }
+
+        return _cubes[1,1,1];
     }
 
     public GameObject[] GetSliceCubes(GameObject singleCube, Vector3 dragVector, Vector3 touchPoint)
@@ -68,7 +83,7 @@ public class PuzzleGenerator : MonoBehaviour
 
         var slicePlane = new Plane(singleCube.transform.position, p2, p3);
 
-        var axisProbe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        var axisProbe = new GameObject("AxisProbe");
         axisProbe.transform.position = singleCube.transform.position;
         axisProbe.transform.up = slicePlane.normal;
         axisProbe.transform.localScale = new Vector3(25f, 0.1f, 25f);
@@ -79,6 +94,7 @@ public class PuzzleGenerator : MonoBehaviour
             axisProbe.transform.lossyScale / 2,
             axisProbe.transform.rotation
         );
+
         Destroy(axisProbe);
 
         var cubes = new List<GameObject>();
