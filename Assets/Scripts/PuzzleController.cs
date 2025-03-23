@@ -57,82 +57,30 @@ public class PuzzleController : MonoBehaviour
 
         _touchCube = _generator.RandomCube();
         _localDragDirection = directions[rnd.Next(0, directions.Length)];
-
-        var camPos = Camera.main.transform.position;
-        var ray = new Ray(camPos, (_touchCube.transform.position - camPos) * 5);
-        if (Physics.Raycast(ray, out var hit)) 
-        {
-            _touchPoint = hit.point;
-            Debug.Log(hit.transform.name);
-        }
-
-
-        Debug.DrawRay(camPos, (_touchCube.transform.position - camPos) * 5, Color.red, 1);
-
-        if (_localDragDirection != Vector3.zero && _touchCube != null && _touchPoint != Vector3.zero)
-        {
-            if (_pivot == null)
-            {
-                _pivot = new GameObject("Rotation Pivot");
-                _pivot.transform.SetParent(transform);
-            }
-            _pivot.transform.localRotation = Quaternion.identity;
-            _pivot.transform.position = Vector3.zero;
-
-            _sliceCubes = _generator.GetSliceCubes(_touchCube, _localDragDirection, _touchPoint);
-            UpdateDrag(46);
-            EndDrag();
-        }
-
+        StartDrag(_localDragDirection);
+        RotateSliceRandomly(_sliceCubes);
     }
 
     private void StartDrag(Vector3 dragVector)
     {
         if (_touchCube == null || dragVector == Vector3.zero) return;
-
         _sliceCubes = _generator.GetSliceCubes(_touchCube, dragVector, _touchPoint);
-        if (_pivot == null)
-        {
-            _pivot = new GameObject("Rotation Pivot");
-            _pivot.transform.SetParent(transform);
-        }
-        _pivot.transform.localRotation = Quaternion.identity;
-        _pivot.transform.position = Vector3.zero;
 
-        var sameX = true;
-        var sameY = true;
-        var sameZ = true;
-        var referencePosition = RoundVector(_sliceCubes[0].transform.localPosition);
+        HandlePivot();
 
-        foreach (var cube in _sliceCubes) 
-        {
-            var pos = RoundVector(cube.transform.localPosition);
-            if (pos.x != referencePosition.x) sameX = false;
-            if (pos.y != referencePosition.y) sameY = false;
-            if (pos.z != referencePosition.z) sameZ = false;
-
-            cube.transform.SetParent(_pivot.transform);
-        }
-
-        if(sameX) 
-        {
-            _localDragDirection = Vector3.up;
-        }
-        else if (sameY)
-        {
-            _localDragDirection = Vector3.right;
-        }
-        else if (sameZ)
-        {
-            _localDragDirection = Vector3.back;
-        }
+        var commonAxis = GetCommonAxis(_sliceCubes);
+        _localDragDirection = new Vector3(commonAxis.y, commonAxis.x, commonAxis.z);
     }
 
-    private void UpdateDrag(float rotationAngle)
+    private void UpdateDrag(float dragAmount)
     {
-        if(_sliceCubes == null || _localDragDirection == Vector3.zero) return;
+        if (_sliceCubes == null || _localDragDirection == Vector3.zero) 
+        {
+            Debug.LogWarning("This shouldn't happen...");
+            return; 
+        }
 
-        RotateAlongDrag(_sliceCubes, _localDragDirection, rotationAngle);
+        RotateAlongDrag(_sliceCubes, _localDragDirection, dragAmount);
     }
 
     private void EndDrag()
@@ -178,35 +126,34 @@ public class PuzzleController : MonoBehaviour
         });
     }
 
-    private void RotateAlongDrag(GameObject[] sliceCubes, Vector3 dragVector, float amount)
+    private void RotateAlongDrag(GameObject[] sliceCubes, Vector3 dragVector, float dragAmount)
     {
         IsAnimating = true;
 
         Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
         var axis = directions.OrderByDescending(dir => Vector3.Dot(dragVector, dir)).First();
 
-        _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * amount;
+        Debug.Log(axis + " " + dragAmount);
+
+        _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * dragAmount;
     }
 
-    private void RotateSlice(GameObject[] sliceCubes, Vector3 direction, float speed = .5f)
+    private void RotateSliceRandomly(GameObject[] sliceCubes, float speed = .5f)
     {
         if (IsAnimating) return;
         IsAnimating = true;
 
-        if (_pivot == null)
-        {
-            _pivot = new GameObject();
-        }
-        _pivot.transform.SetParent(transform);
-        _pivot.transform.localRotation = Quaternion.identity;
-        _pivot.transform.position = Vector3.zero;
+        HandlePivot();
+
         foreach (var cube in sliceCubes)
         {
             cube.transform.SetParent(_pivot.transform);
         };
 
+        var commonAxis = GetCommonAxis(_sliceCubes);
+
         _pivot.transform.DOComplete();
-        _pivot.transform.DORotate(direction * 90, speed)
+        _pivot.transform.DOLocalRotate(commonAxis * 90, speed)
             .SetEase(Ease.InSine)
             .OnComplete(() =>
             {
@@ -216,6 +163,55 @@ public class PuzzleController : MonoBehaviour
                 }
                 IsAnimating = false;
             });
+    }
+
+    private Vector3 GetCommonAxis(GameObject[] sliceGroup) 
+    {
+        var sameX = true;
+        var sameY = true;
+        var sameZ = true;
+        var referencePosition = RoundVector(sliceGroup[0].transform.localPosition);
+
+        foreach (var cube in sliceGroup)
+        {
+            var pos = RoundVector(cube.transform.localPosition);
+            if (pos.x != referencePosition.x) sameX = false;
+            if (pos.y != referencePosition.y) sameY = false;
+            if (pos.z != referencePosition.z) sameZ = false;
+
+            cube.transform.SetParent(_pivot.transform);
+        }
+
+        if (sameX)
+        {
+            return Vector3.right;
+        }
+        else if (sameY)
+        {
+            return Vector3.up;
+        }
+        else if (sameZ)
+        {
+            return Vector3.back;
+        }
+        else 
+        {
+            Debug.LogWarning("This shouldn't happen...");
+            return Vector3.zero; 
+        }
+    
+    }
+
+    private void HandlePivot() 
+    {
+        if (_pivot == null)
+        {
+            _pivot = new GameObject("Rotation Pivot");
+            _pivot.transform.SetParent(transform);
+            _pivot.transform.SetSiblingIndex(0);
+        }
+        _pivot.transform.localRotation = Quaternion.identity;
+        _pivot.transform.position = Vector3.zero;
     }
 
     private Vector3 RoundVector(Vector3 value) => new Vector3(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y), Mathf.RoundToInt(value.z));

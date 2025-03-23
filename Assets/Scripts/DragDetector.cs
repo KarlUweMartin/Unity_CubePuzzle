@@ -44,7 +44,8 @@ public class DragDetector : MonoBehaviour
 
         if (_dragStarted) 
         {
-            OnDragUpdate.Invoke((_dragDistance - _dragThreshhold) * .4f);
+            var dragAmount = _initialDistanceToScrenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
+            OnDragUpdate.Invoke(dragAmount);
         }
     }
 
@@ -54,6 +55,9 @@ public class DragDetector : MonoBehaviour
 
         if (!_dragStarted && _dragDistance > _dragThreshhold)
         {
+            _dragVector2D = _liveInputPosition - _startPosition;
+            _initialDistanceToScrenEdge = DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
+
             Ray ray = Camera.main.ScreenPointToRay(_liveInputPosition);
             if (Physics.Raycast(ray, out var hit))
             {
@@ -71,12 +75,6 @@ public class DragDetector : MonoBehaviour
                 }
             }
         }
-    }
-
-    private Vector3 GetClosestLocalDirection(Vector3 localDirection)
-    {
-        Vector3[] localDirections = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
-        return localDirections.OrderBy(dir => Vector3.Angle(localDirection, dir)).First();
     }
 
     private void StartDrag(Vector2 position)
@@ -98,12 +96,44 @@ public class DragDetector : MonoBehaviour
 
         OnDragEnd.Invoke();
     }
-  
-    private Vector2 _startPosition, _liveInputPosition;
+
+    private Vector3 GetClosestLocalDirection(Vector3 localDirection)
+    {
+        Vector3[] localDirections = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
+        return localDirections.OrderBy(dir => Vector3.Angle(localDirection, dir)).First();
+    }
+
+    public float DistanceToScreenEdge(Vector2 screenPoint, Vector2 direction)
+    {
+        direction.Normalize();
+
+        float screenWidth = Screen.width;
+        float screenHeight = Screen.height;
+        float tMax = float.MaxValue;
+
+        if (direction.x != 0)
+        {
+            float t1 = (0 - screenPoint.x) / direction.x;
+            float t2 = (screenWidth - screenPoint.x) / direction.x;
+            tMax = Mathf.Min(tMax, Mathf.Max(t1, t2));
+        }
+
+        if (direction.y != 0)
+        {
+            float t3 = (0 - screenPoint.y) / direction.y;
+            float t4 = (screenHeight - screenPoint.y) / direction.y;
+            tMax = Mathf.Min(tMax, Mathf.Max(t3, t4));
+        }
+
+        return tMax;
+    }
+
+    private Vector2 _startPosition, _liveInputPosition, _dragVector2D;
     private Vector3 _firstHit, _secondHit;
     private bool _isDragging = false;
     private bool _dragStarted = false;
 
     private int _dragThreshhold = 12;
     private float _dragDistance = 0;
+    private float _initialDistanceToScrenEdge = 0;
 }
