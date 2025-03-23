@@ -44,7 +44,7 @@ public class DragDetector : MonoBehaviour
 
         if (_dragStarted) 
         {
-            var dragAmount = _initialDistanceToScrenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
+            var dragAmount = _initialDistanceToScreenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
             OnDragUpdate.Invoke(dragAmount);
         }
     }
@@ -56,7 +56,7 @@ public class DragDetector : MonoBehaviour
         if (!_dragStarted && _dragDistance > _dragThreshhold)
         {
             _dragVector2D = _liveInputPosition - _startPosition;
-            _initialDistanceToScrenEdge = DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
+            _initialDistanceToScreenEdge = DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
 
             Ray ray = Camera.main.ScreenPointToRay(_liveInputPosition);
             if (Physics.Raycast(ray, out var hit))
@@ -79,7 +79,7 @@ public class DragDetector : MonoBehaviour
 
     private void StartDrag(Vector2 position)
     {
-        Ray ray = Camera.main.ScreenPointToRay(position);
+        var ray = Camera.main.ScreenPointToRay(position);
         if (Physics.Raycast(ray, out var hit))
         {
             _isDragging = true;
@@ -107,21 +107,21 @@ public class DragDetector : MonoBehaviour
     {
         direction.Normalize();
 
-        float screenWidth = Screen.width;
-        float screenHeight = Screen.height;
-        float tMax = float.MaxValue;
+        var screenWidth = Screen.width;
+        var screenHeight = Screen.height;
+        var tMax = float.MaxValue;
 
         if (direction.x != 0)
         {
-            float t1 = (0 - screenPoint.x) / direction.x;
-            float t2 = (screenWidth - screenPoint.x) / direction.x;
+            var t1 = (0 - screenPoint.x) / direction.x;
+            var t2 = (screenWidth - screenPoint.x) / direction.x;
             tMax = Mathf.Min(tMax, Mathf.Max(t1, t2));
         }
 
         if (direction.y != 0)
         {
-            float t3 = (0 - screenPoint.y) / direction.y;
-            float t4 = (screenHeight - screenPoint.y) / direction.y;
+            var t3 = (0 - screenPoint.y) / direction.y;
+            var t4 = (screenHeight - screenPoint.y) / direction.y;
             tMax = Mathf.Min(tMax, Mathf.Max(t3, t4));
         }
 
@@ -134,6 +134,5 @@ public class DragDetector : MonoBehaviour
     private bool _dragStarted = false;
 
     private int _dragThreshhold = 12;
-    private float _dragDistance = 0;
-    private float _initialDistanceToScrenEdge = 0;
+    private float _dragDistance, _initialDistanceToScreenEdge;
 }
