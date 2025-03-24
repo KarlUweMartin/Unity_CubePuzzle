@@ -44,8 +44,16 @@ public class DragDetector : MonoBehaviour
 
         if (_dragStarted) 
         {
-            var dragAmount = _initialDistanceToScreenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D);
-            OnDragUpdate.Invoke(dragAmount);
+            var dragAmount = (_initialDistanceToScreenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D)) * .4f;
+
+            if (Mathf.Abs(dragAmount) > 47)
+            {
+                EndDrag();
+            }
+            else 
+            {
+                OnDragUpdate.Invoke(dragAmount);
+            }
         }
     }
 

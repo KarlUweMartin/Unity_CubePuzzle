@@ -27,26 +27,11 @@ public class PuzzleController : MonoBehaviour
             }
         }
 
-        if (Input.GetMouseButtonUp(0)) 
-        {
-            //
-        }
-
-        if (Input.touchCount > 0)
-        {
-            // TODO: Implement the same stuff for touch!
-        }
-
         if (_shuffle)
         {
             Randomize();
         }
-
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            Randomize();
-        }
-    } 
+    }
 
     public void Randomize()
     {
@@ -88,30 +73,28 @@ public class PuzzleController : MonoBehaviour
         if (_sliceCubes == null) return;
 
         var eulerAngles = _pivot.transform.localEulerAngles;
-        eulerAngles.x = (eulerAngles.x > 180) ? eulerAngles.x - 360 : eulerAngles.x;
-        eulerAngles.y = (eulerAngles.y > 180) ? eulerAngles.y - 360 : eulerAngles.y;
-        eulerAngles.z = (eulerAngles.z > 180) ? eulerAngles.z - 360 : eulerAngles.z;
-
-        var absX = Mathf.Abs(eulerAngles.x);
-        var absY = Mathf.Abs(eulerAngles.y);
-        var absZ = Mathf.Abs(eulerAngles.z);
 
         var alignedEuler = Vector3.zero;
-
-        if (absX > absY && absX > absZ)
+        if (eulerAngles.x != 0) 
         {
-            alignedEuler = new Vector3(Mathf.Round(eulerAngles.x / 90) * 90, 0, 0);
-        }
-        else if (absY > absX && absY > absZ)
-        {
-            alignedEuler = new Vector3(0, Mathf.Round(eulerAngles.y / 90) * 90, 0);
-        }
-        else
-        {
-            alignedEuler = new Vector3(0, 0, Mathf.Round(eulerAngles.z / 90) * 90);
+            alignedEuler = RoundVector(new Vector3(Mathf.Round(eulerAngles.x / 90) * 90, 0, 0));
         }
 
-        _pivot.transform.DOLocalRotate(alignedEuler, .15f).OnComplete(() => 
+        if (eulerAngles.y != 0)
+        {
+            alignedEuler = RoundVector(new Vector3(0, Mathf.Round(eulerAngles.y / 90) * 90, 0));
+        }
+
+        if (eulerAngles.z != 0)
+        {
+            alignedEuler = RoundVector(new Vector3(0, 0, Mathf.Round(eulerAngles.z / 90) * 90));
+        }
+
+        _pivot.transform.DOLocalRotate(alignedEuler, .15f, RotateMode.FastBeyond360).OnComplete(HandleComplete);
+
+        Debug.Log(RoundVector(alignedEuler));
+
+        void HandleComplete()
         {
             foreach (var cube in _sliceCubes)
             {
@@ -123,7 +106,7 @@ public class PuzzleController : MonoBehaviour
             _touchCube = null;
             _sliceCubes = null;
             IsAnimating = false;
-        });
+        }
     }
 
     private void RotateAlongDrag(GameObject[] sliceCubes, Vector3 dragVector, float dragAmount)
@@ -132,8 +115,6 @@ public class PuzzleController : MonoBehaviour
 
         Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
         var axis = directions.OrderByDescending(dir => Vector3.Dot(dragVector, dir)).First();
-
-        Debug.Log(axis + " " + dragAmount);
 
         _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * dragAmount;
     }
