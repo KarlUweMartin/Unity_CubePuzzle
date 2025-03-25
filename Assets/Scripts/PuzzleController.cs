@@ -10,6 +10,7 @@ public class PuzzleController : MonoBehaviour
     {
         DOTween.Init();
         _shuffleButton.onValueChanged.AddListener((v) => { _shuffle = v; });
+        _resetButton.onClick.AddListener(ResetPuzzle);
         _dragDetector.OnDragStart.AddListener(StartDrag);
         _dragDetector.OnDragUpdate.AddListener(UpdateDrag);
         _dragDetector.OnDragEnd.AddListener(EndDrag);
@@ -37,12 +38,7 @@ public class PuzzleController : MonoBehaviour
     {
         if (IsAnimating) return;
 
-        var rnd = new System.Random();
-        var directions = new Vector3[] { Vector3.down, Vector3.up, Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
-
-        _touchCube = _generator.RandomCube();
-        _localDragDirection = directions[rnd.Next(0, directions.Length)];
-        StartDrag(_localDragDirection);
+        _sliceCubes = _generator.RandomSlice();
         RotateSliceRandomly(_sliceCubes);
     }
 
@@ -92,8 +88,6 @@ public class PuzzleController : MonoBehaviour
 
         _pivot.transform.DOLocalRotate(alignedEuler, .15f, RotateMode.FastBeyond360).OnComplete(HandleComplete);
 
-        Debug.Log(RoundVector(alignedEuler));
-
         void HandleComplete()
         {
             foreach (var cube in _sliceCubes)
@@ -116,10 +110,15 @@ public class PuzzleController : MonoBehaviour
         Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
         var axis = directions.OrderByDescending(dir => Vector3.Dot(dragVector, dir)).First();
 
+        foreach (var cube in sliceCubes)
+        {
+            cube.transform.SetParent(_pivot.transform);
+        };
+
         _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * dragAmount;
     }
 
-    private void RotateSliceRandomly(GameObject[] sliceCubes, float speed = .5f)
+    private void RotateSliceRandomly(GameObject[] sliceCubes)
     {
         if (IsAnimating) return;
         IsAnimating = true;
@@ -131,11 +130,10 @@ public class PuzzleController : MonoBehaviour
             cube.transform.SetParent(_pivot.transform);
         };
 
-        var commonAxis = GetCommonAxis(_sliceCubes);
+        var commonAxis = GetCommonAxis(sliceCubes);
 
         _pivot.transform.DOComplete();
-        _pivot.transform.DOLocalRotate(commonAxis * 90, speed)
-            .SetEase(Ease.InSine)
+        _pivot.transform.DOLocalRotate(commonAxis * 90, .2f)
             .OnComplete(() =>
             {
                 foreach (var cube in sliceCubes)
@@ -159,8 +157,6 @@ public class PuzzleController : MonoBehaviour
             if (pos.x != referencePosition.x) sameX = false;
             if (pos.y != referencePosition.y) sameY = false;
             if (pos.z != referencePosition.z) sameZ = false;
-
-            cube.transform.SetParent(_pivot.transform);
         }
 
         if (sameX)
@@ -195,9 +191,24 @@ public class PuzzleController : MonoBehaviour
         _pivot.transform.position = Vector3.zero;
     }
 
+    private void ResetPuzzle()
+    {
+        if (_pivot != null) 
+        {
+            _pivot.transform.DOComplete();
+        }
+
+        _shuffle = false;
+        IsAnimating = false;
+        _shuffleButton.SetIsOnWithoutNotify(false);
+
+        _generator.ResetCube();
+    }
+
     private Vector3 RoundVector(Vector3 value) => new Vector3(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y), Mathf.RoundToInt(value.z));
 
     [SerializeField] private Toggle _shuffleButton;
+    [SerializeField] private Button _resetButton;
     [SerializeField] private PuzzleGenerator _generator;
     [SerializeField] private DragDetector _dragDetector;
 

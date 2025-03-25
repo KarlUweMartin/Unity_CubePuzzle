@@ -109,7 +109,38 @@ public class PuzzleGenerator : MonoBehaviour
         return cubes.ToArray();
     }
 
-  
+
+    public GameObject[] RandomSlice()
+    {
+        var rnd = new System.Random();
+
+        var axisProbe = new GameObject("AxisProbe");
+        axisProbe.transform.SetParent(transform);
+        axisProbe.transform.localPosition = new Vector3(rnd.Next(-1, 1), rnd.Next(-1, 1), rnd.Next(-1, 1));
+        axisProbe.transform.localEulerAngles = new Vector3(rnd.Next(-1, 1) * 90, rnd.Next(-1, 1) * 90, rnd.Next(-1, 1) * 90);
+        axisProbe.transform.localScale = new Vector3(6f, 0.1f, 6f);
+        axisProbe.AddComponent<BoxCollider>().isTrigger = true;
+
+        var hitColliders = Physics.OverlapBox(
+            axisProbe.transform.position,
+            axisProbe.transform.lossyScale / 2,
+            axisProbe.transform.rotation
+        );
+
+        Destroy(axisProbe);
+
+        var cubes = new List<GameObject>();
+        foreach (var collider in hitColliders)
+        {
+            if (collider.gameObject.CompareTag("SingleCube"))
+            {
+                cubes.Add(collider.gameObject);
+            }
+        }
+
+        return cubes.ToArray();
+    }
+
 
     private GameObject GetAxisCube(GameObject cube, Vector3 dragVector, Vector3 touchPoint)
     {
