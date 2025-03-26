@@ -1,4 +1,5 @@
 using UnityEngine.Events;
+
 public static class LogicModel
 {
     static public UnityEvent<int> OnStepCountChanged = new();
@@ -19,6 +20,9 @@ public static class LogicModel
 
         }
     }
+
+    static public bool IsShuffeling { get; set; } = false;
+
     static public UnityEvent OnAnimationComplete = new();
     private static bool _isAnimating = false;
 }

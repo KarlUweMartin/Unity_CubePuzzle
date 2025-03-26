@@ -9,7 +9,7 @@ public class PuzzleController : MonoBehaviour
     private void Start()
     {
         DOTween.Init();
-        _shuffleButton.onValueChanged.AddListener((v) => { _shuffle = v; });
+        _shuffleButton.onValueChanged.AddListener((value) => { IsShuffeling = value; });
         _resetButton.onClick.AddListener(ResetPuzzle);
         _dragDetector.OnDragStart.AddListener(StartDrag);
         _dragDetector.OnDragUpdate.AddListener(UpdateDrag);
@@ -18,17 +18,26 @@ public class PuzzleController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (!IsShuffeling) 
         {
-            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            var inputPos = Vector2.zero;
+            if (Input.GetMouseButtonDown(0))
+            {
+                inputPos = Input.mousePosition;
+            }
+            else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+            { 
+                inputPos = Input.GetTouch(0).position;
+            }
+
+            var ray = Camera.main.ScreenPointToRay(inputPos);
             if (Physics.Raycast(ray, out var hit))
             {
                 _touchCube = hit.collider.gameObject;
                 _touchPoint = hit.point;
             }
         }
-
-        if (_shuffle)
+        else
         {
             Randomize();
         }
@@ -133,15 +142,14 @@ public class PuzzleController : MonoBehaviour
         var commonAxis = GetCommonAxis(sliceCubes);
 
         _pivot.transform.DOComplete();
-        _pivot.transform.DOLocalRotate(commonAxis * 90, .2f)
-            .OnComplete(() =>
+        _pivot.transform.DOLocalRotate(commonAxis * 90, .2f).OnComplete(() =>
+        {
+            foreach (var cube in sliceCubes)
             {
-                foreach (var cube in sliceCubes)
-                {
-                    cube.transform.SetParent(transform);
-                }
-                IsAnimating = false;
-            });
+                cube.transform.SetParent(transform);
+            }
+            IsAnimating = false;
+        });
     }
 
     private Vector3 GetCommonAxis(GameObject[] sliceGroup) 
@@ -176,7 +184,6 @@ public class PuzzleController : MonoBehaviour
             Debug.LogWarning("This shouldn't happen...");
             return Vector3.zero; 
         }
-    
     }
 
     private void HandlePivot() 
@@ -198,14 +205,14 @@ public class PuzzleController : MonoBehaviour
             _pivot.transform.DOComplete();
         }
 
-        _shuffle = false;
+        IsShuffeling = false;
         IsAnimating = false;
         _shuffleButton.SetIsOnWithoutNotify(false);
 
-        _generator.ResetCube();
+        _generator.Generate();
     }
 
-    private Vector3 RoundVector(Vector3 value) => new Vector3(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y), Mathf.RoundToInt(value.z));
+    private Vector3 RoundVector(Vector3 value) => new(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y), Mathf.RoundToInt(value.z));
 
     [SerializeField] private Toggle _shuffleButton;
     [SerializeField] private Button _resetButton;
@@ -216,6 +223,4 @@ public class PuzzleController : MonoBehaviour
     private GameObject _touchCube;
     private GameObject[] _sliceCubes;
     private Vector3 _touchPoint, _localDragDirection;
-
-    private bool _shuffle;
 }

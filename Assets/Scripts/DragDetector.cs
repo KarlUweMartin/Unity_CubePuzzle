@@ -1,6 +1,7 @@
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using static LogicModel;
 
 public class DragDetector : MonoBehaviour
 {
@@ -10,6 +11,8 @@ public class DragDetector : MonoBehaviour
 
     void Update()
     {
+        if (IsShuffeling) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             StartDrag(Input.mousePosition);
@@ -44,7 +47,7 @@ public class DragDetector : MonoBehaviour
 
         if (_dragStarted) 
         {
-            var dragAmount = (_initialDistanceToScreenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D)) * .15f;
+            var dragAmount = (_initialDistanceToScreenEdge - DistanceToScreenEdge(_liveInputPosition, _dragVector2D)) * .25f;
 
             if (Mathf.Abs(dragAmount) > 47)
             {

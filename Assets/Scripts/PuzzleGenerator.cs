@@ -9,17 +9,31 @@ public class PuzzleGenerator : MonoBehaviour
 {
     private void Start()
     {
-        ResetCube();
+        Generate(false);
     }
 
-    public void ResetCube()
+    public void Generate(bool reset = true)
     {
-        IsAnimating = false;
-        foreach (var c in _cubes)
+        IsShuffeling = false;
+        IsAnimating = true;
+
+        if (reset)
         {
-            Destroy(c);
+            transform.DOScale(0, .15f).SetEase(Ease.OutSine).OnComplete(Reset);
         }
-        Initiate();
+        else Reset();
+
+        void Reset()
+        {
+            foreach (var c in _cubes) 
+            {
+                Destroy(c);
+            }
+
+            Initiate();
+            transform.localScale = Vector3.zero;
+            transform.DOScale(1, .3f).SetEase(Ease.InQuart).OnComplete(() => IsAnimating = false);
+        }
     }
 
     public GameObject RandomCube() 
