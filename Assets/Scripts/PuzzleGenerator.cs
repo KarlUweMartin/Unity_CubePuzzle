@@ -1,7 +1,5 @@
 ﻿using DG.Tweening;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using static LogicModel;
 
@@ -19,19 +17,19 @@ public class PuzzleGenerator : MonoBehaviour
 
         if (reset)
         {
-            transform.DOScale(0, .15f).SetEase(Ease.OutSine).OnComplete(Reset);
+            transform.DOScale(0, .15f).SetEase(Ease.OutSine).OnComplete(Generate);
         }
-        else Reset();
+        else Generate();
 
-        void Reset()
+        void Generate()
         {
             foreach (var c in _cubes) 
             {
                 Destroy(c);
             }
 
-            Initiate();
             transform.localScale = Vector3.zero;
+            Initiate();
             transform.DOScale(1, .3f).SetEase(Ease.InQuart).OnComplete(() => IsAnimating = false);
         }
     }
@@ -239,19 +237,27 @@ public class PuzzleGenerator : MonoBehaviour
 
     private void CreateFace(GameObject parent, Vector3 localPosition, Quaternion rotation, Color color)
     {
-        GameObject face = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        var face = GameObject.CreatePrimitive(PrimitiveType.Quad);
         face.transform.SetParent(parent.transform);
         face.transform.localPosition = localPosition;
         face.transform.localRotation = rotation;
         face.transform.localScale = Vector3.one * 0.9f;
 
-        Material mat = new Material(Shader.Find("Standard"));
+        var mat = new Material(Shader.Find("Standard"));
         mat.color = color;
         face.GetComponent<MeshRenderer>().material = mat;
         Destroy(face.GetComponent<Collider>());
     }
 
     private GameObject[,,] _cubes = new GameObject[3, 3, 3];
-    private Color[] _faceColors = { Color.white, Color.yellow, Color.blue, Color.green, Color.red, new Color(1.0f, 0.5f, 0.0f) };
+    private Color[] _faceColors = {
+        new Color32(0x4A, 0x48, 0x8A, 255),
+        new Color32(0x5A, 0x71, 0x34, 255),
+        new Color32(0xDB, 0xD9, 0xD1, 255),
+        new Color32(0xF1, 0xAE, 0x18, 255),
+        new Color32(0xC8, 0x64, 0x16, 255),
+        new Color32(0xA8, 0x33, 0x22, 255)
+    };
+
     [SerializeField] private GameObject _cubePrefab;
 }

@@ -1,5 +1,4 @@
 using DG.Tweening;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using static LogicModel;
@@ -56,21 +55,24 @@ public class PuzzleController : MonoBehaviour
         if (_touchCube == null || dragVector == Vector3.zero) return;
         _sliceCubes = _generator.GetSliceCubes(_touchCube, dragVector, _touchPoint);
 
-        HandlePivot();
+        var pivot = HandlePivot();
+        foreach (var cube in _sliceCubes)
+        {
+            cube.transform.SetParent(pivot.transform);
+        };
 
-        var commonAxis = GetCommonAxis(_sliceCubes);
-        _localDragDirection = new Vector3(commonAxis.y, commonAxis.x, commonAxis.z);
+        _localDragDirection = GetCommonAxis(_sliceCubes);
     }
 
     private void UpdateDrag(float dragAmount)
     {
-        if (_sliceCubes == null || _localDragDirection == Vector3.zero) 
+        if (_sliceCubes == null || _localDragDirection == Vector3.zero || _pivot == null) 
         {
-            Debug.LogWarning("This shouldn't happen...");
             return; 
         }
 
-        RotateAlongDrag(_sliceCubes, _localDragDirection, dragAmount);
+        IsAnimating = true;
+        _pivot.transform.localEulerAngles = _localDragDirection * dragAmount;
     }
 
     private void EndDrag()
@@ -95,9 +97,7 @@ public class PuzzleController : MonoBehaviour
             alignedEuler = RoundVector(new Vector3(0, 0, Mathf.Round(eulerAngles.z / 90) * 90));
         }
 
-        _pivot.transform.DOLocalRotate(alignedEuler, .15f, RotateMode.FastBeyond360).OnComplete(HandleComplete);
-
-        void HandleComplete()
+        _pivot.transform.DOLocalRotate(alignedEuler, .15f, RotateMode.FastBeyond360).OnComplete(() => 
         {
             foreach (var cube in _sliceCubes)
             {
@@ -109,22 +109,7 @@ public class PuzzleController : MonoBehaviour
             _touchCube = null;
             _sliceCubes = null;
             IsAnimating = false;
-        }
-    }
-
-    private void RotateAlongDrag(GameObject[] sliceCubes, Vector3 dragVector, float dragAmount)
-    {
-        IsAnimating = true;
-
-        Vector3[] directions = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
-        var axis = directions.OrderByDescending(dir => Vector3.Dot(dragVector, dir)).First();
-
-        foreach (var cube in sliceCubes)
-        {
-            cube.transform.SetParent(_pivot.transform);
-        };
-
-        _pivot.transform.localEulerAngles = new Vector3(axis.y, axis.x, axis.z) * dragAmount;
+        });
     }
 
     private void RotateSliceRandomly(GameObject[] sliceCubes)
@@ -132,17 +117,15 @@ public class PuzzleController : MonoBehaviour
         if (IsAnimating) return;
         IsAnimating = true;
 
-        HandlePivot();
-
+        var pivot = HandlePivot();
         foreach (var cube in sliceCubes)
         {
-            cube.transform.SetParent(_pivot.transform);
+            cube.transform.SetParent(pivot.transform);
         };
 
         var commonAxis = GetCommonAxis(sliceCubes);
-
-        _pivot.transform.DOComplete();
-        _pivot.transform.DOLocalRotate(commonAxis * 90, .2f).OnComplete(() =>
+        pivot.transform.DOComplete();
+        pivot.transform.DOLocalRotate(commonAxis * 90, .2f).OnComplete(() =>
         {
             foreach (var cube in sliceCubes)
             {
@@ -169,24 +152,23 @@ public class PuzzleController : MonoBehaviour
 
         if (sameX)
         {
-            return Vector3.right;
+            return referencePosition.x > 0 ? Vector3.right : Vector3.left;
         }
         else if (sameY)
         {
-            return Vector3.up;
+            return referencePosition.y > 0 ? Vector3.up : Vector3.down;
         }
         else if (sameZ)
         {
-            return Vector3.back;
+            return referencePosition.z > 0 ? Vector3.forward : Vector3.back;
         }
-        else 
+        else
         {
-            Debug.LogWarning("This shouldn't happen...");
             return Vector3.zero; 
         }
     }
 
-    private void HandlePivot() 
+    private Transform HandlePivot() 
     {
         if (_pivot == null)
         {
@@ -196,6 +178,8 @@ public class PuzzleController : MonoBehaviour
         }
         _pivot.transform.localRotation = Quaternion.identity;
         _pivot.transform.position = Vector3.zero;
+
+        return _pivot.transform;
     }
 
     private void ResetPuzzle()
