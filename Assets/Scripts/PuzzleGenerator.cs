@@ -118,6 +118,8 @@ public class PuzzleGenerator : MonoBehaviour
             }
         }
 
+        if (cubes.Count < 8 || cubes.Count > 9) return null;
+
         return cubes.ToArray();
     }
 
