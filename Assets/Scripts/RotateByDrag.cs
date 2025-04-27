@@ -36,7 +36,7 @@ public class RotateByDrag : MonoBehaviour
 
     private void HandleTouchInput()
     {
-        if (Input.touchCount > 0)
+        if (Input.touchCount == 1)
         {
             Touch touch = Input.GetTouch(0);
             if (!IsPointerOverCollider() && touch.phase == TouchPhase.Began)
