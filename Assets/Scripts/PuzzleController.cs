@@ -62,6 +62,34 @@ public class PuzzleController : MonoBehaviour
         };
 
         _localDragDirection = GetCommonAxis(_sliceCubes);
+
+        // Translate 2D drag direction to 3D rotation axis
+        if (_localDragDirection != Vector3.zero)
+        {
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var axisWorld = transform.TransformDirection(GetCommonAxis(_sliceCubes));
+                var screenCenter = cam.WorldToScreenPoint(pivot.transform.position);
+                var screenAxisPoint = cam.WorldToScreenPoint(pivot.transform.position + axisWorld);
+                var screenDragPoint = cam.WorldToScreenPoint(pivot.transform.position + dragVector);
+
+                var screenAxis = screenAxisPoint - screenCenter;
+                var screenDrag = screenDragPoint - screenCenter;
+
+                var crossZ = screenDrag.x * screenAxis.y - screenDrag.y * screenAxis.x;
+                var sign = Mathf.Approximately(crossZ, 0f) ? 1f : Mathf.Sign(crossZ);
+
+                if (Mathf.Approximately(sign, 0f))
+                {
+                    var fallback = Vector3.Cross(cam.transform.forward, axisWorld);
+                    sign = Mathf.Sign(Vector3.Dot(fallback, dragVector));
+                    if (Mathf.Approximately(sign, 0f)) sign = 1f;
+                }
+
+                _localDragDirection = GetCommonAxis(_sliceCubes) * -sign;
+            }
+        }
     }
 
     private void UpdateDrag(float dragAmount)
