@@ -1,9 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine.Events;
 
 public static class LogicModel
 {
-    static public UnityEvent<int> OnStepCountChanged = new();
-
     static public bool IsAnimating 
     {
         get => _isAnimating;
@@ -22,7 +21,21 @@ public static class LogicModel
     }
 
     static public bool IsShuffeling { get; set; } = false;
-
     static public UnityEvent OnAnimationComplete = new();
     private static bool _isAnimating = false;
+}
+
+[System.Serializable]
+public struct CubeData
+{
+    public UnityEngine.Vector3 Position;
+    public UnityEngine.Vector3 Rotation;
+    public string Name;
+}
+
+[System.Serializable]
+public class CubeDataContainer
+{
+    public UnityEngine.Vector3 MasterRotation;
+    public List<CubeData> Cubes = new();
 }

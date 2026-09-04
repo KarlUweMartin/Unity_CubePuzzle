@@ -1,5 +1,4 @@
-﻿using DG.Tweening;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using static LogicModel;
 
@@ -10,14 +9,63 @@ public class PuzzleGenerator : MonoBehaviour
         Generate(false);
     }
 
+    public void Save()
+    {
+        var container = new CubeDataContainer();
+        for(int i = 0; i < transform.childCount; i++)
+        {
+            var child = transform.GetChild(i);
+            if (!child.name.StartsWith("C_")) continue;
+
+            container.MasterRotation = transform.rotation.eulerAngles;
+            container.Cubes.Add(new CubeData
+            {
+                Position = child.position,
+                Rotation = child.rotation.eulerAngles,
+                Name = child.name
+            });
+        }
+
+        var json = JsonUtility.ToJson(container, true);
+        PlayerPrefs.SetString("PuzzleSave", json);
+        Debug.Log($"Puzzle saved to PlayerPrefs");
+    }
+
+    public void Load()
+    {
+       _camSwipe.SwipeOut(() => {
+           var json = PlayerPrefs.GetString("PuzzleSave", "");
+           if(string.IsNullOrEmpty(json))
+           {
+               Debug.LogWarning("No saved puzzle data found in PlayerPrefs.");
+               return;
+           }
+
+           var container = JsonUtility.FromJson<CubeDataContainer>(json);
+           transform.eulerAngles = container.MasterRotation;
+           foreach (var cube in container.Cubes)
+           {
+               var c = GameObject.Find(cube.Name);
+               if (c != null)
+               {
+                   c.transform.position = cube.Position;
+                   c.transform.rotation = Quaternion.Euler(cube.Rotation);
+               }
+               else Debug.LogError($"Cube not found: {cube.Name} at position {cube.Position} with rotation {cube.Rotation}");
+           }
+
+           _camSwipe.SwipeIn();
+           Debug.Log($"Puzzle loaded from PlayerPrefs");
+       });
+    }
+
     public void Generate(bool reset = true)
     {
         IsShuffeling = false;
-        IsAnimating = true;
 
         if (reset)
         {
-            transform.DOScale(0, .15f).SetEase(Ease.OutSine).OnComplete(Generate);
+            _camSwipe.SwipeOut(Generate);
         }
         else Generate();
 
@@ -27,10 +75,8 @@ public class PuzzleGenerator : MonoBehaviour
             {
                 Destroy(c);
             }
-
-            transform.localScale = Vector3.zero;
             Initiate();
-            transform.DOScale(1, .3f).SetEase(Ease.InQuart).OnComplete(() => IsAnimating = false);
+            _camSwipe.SwipeIn();
         }
     }
 
@@ -262,4 +308,5 @@ public class PuzzleGenerator : MonoBehaviour
     };
 
     [SerializeField] private GameObject _cubePrefab;
+    [SerializeField] private CamSwipe _camSwipe;
 }
