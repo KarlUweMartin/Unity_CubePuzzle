@@ -28,19 +28,32 @@ public class PuzzleGenerator : MonoBehaviour
 
         var json = JsonUtility.ToJson(container, true);
         PlayerPrefs.SetString("PuzzleSave", json);
-        Debug.Log($"Puzzle saved to PlayerPrefs");
+
+        var subText = "";
+#if UNITY_WEBGL
+        subText = "(if your browser allows it)";
+#endif
+
+        _info.Show("Puzzle saved", subText);
     }
 
     public void Load()
     {
-       _camSwipe.SwipeOut(() => {
-           var json = PlayerPrefs.GetString("PuzzleSave", "");
-           if(string.IsNullOrEmpty(json))
-           {
-               Debug.LogWarning("No saved puzzle data found in PlayerPrefs.");
-               return;
-           }
+        var json = PlayerPrefs.GetString("PuzzleSave", "");
+        if(string.IsNullOrEmpty(json))
+        {
+            var subText = "Hit 'Save' to save the puzzle.";
+#if UNITY_WEBGL
+            subText = "Hit 'Save' to store the puzzle in your browsers cache.";
+#endif
 
+            _info.Show("No data", subText);
+            return;
+        }
+
+        _info.Show("Loading...", "", false);
+        _camSwipe.SwipeOut(() => {
+            IsAnimating = true;
            var container = JsonUtility.FromJson<CubeDataContainer>(json);
            transform.eulerAngles = container.MasterRotation;
            foreach (var cube in container.Cubes)
@@ -49,13 +62,13 @@ public class PuzzleGenerator : MonoBehaviour
                if (c != null)
                {
                    c.transform.position = cube.Position;
-                   c.transform.rotation = Quaternion.Euler(cube.Rotation);
+                   c.transform.eulerAngles = cube.Rotation;
                }
                else Debug.LogError($"Cube not found: {cube.Name} at position {cube.Position} with rotation {cube.Rotation}");
            }
 
-           _camSwipe.SwipeIn();
-           Debug.Log($"Puzzle loaded from PlayerPrefs");
+           _camSwipe.SwipeIn(() => IsAnimating = true);
+           _info.Hide();
        });
     }
 
@@ -78,22 +91,6 @@ public class PuzzleGenerator : MonoBehaviour
             Initiate();
             _camSwipe.SwipeIn();
         }
-    }
-
-    public GameObject RandomCube() 
-    {
-        var rnd = new System.Random().Next(0, _cubes.Length-1);
-        int i = 0;
-
-        foreach (var cube in _cubes) 
-        {
-            if (cube == null) continue;
-
-            i++;
-            if(i == rnd) return cube;
-        }
-
-        return _cubes[1,1,1];
     }
 
     public GameObject[] GetSliceCubes(GameObject singleCube, Vector3 dragVector, Vector3 touchPoint)
@@ -273,14 +270,14 @@ public class PuzzleGenerator : MonoBehaviour
     {
         float offset = 0.45f;
 
-        if (x == 2) CreateFace(cube, new Vector3(offset, 0, 0), Quaternion.Euler(0, -90, 0), _faceColors[0]);
-        if (x == 0) CreateFace(cube, new Vector3(-offset, 0, 0), Quaternion.Euler(0, 90, 0), _faceColors[1]);
+        if (x == 2) CreateFace(cube, new Vector3(offset, 0, 0), Quaternion.Euler(0, -90, 0), FaceColors[0]);
+        if (x == 0) CreateFace(cube, new Vector3(-offset, 0, 0), Quaternion.Euler(0, 90, 0), FaceColors[1]);
 
-        if (y == 2) CreateFace(cube, new Vector3(0, offset, 0), Quaternion.Euler(90, 0, 0), _faceColors[2]);
-        if (y == 0) CreateFace(cube, new Vector3(0, -offset, 0), Quaternion.Euler(-90, 0, 0), _faceColors[3]);
+        if (y == 2) CreateFace(cube, new Vector3(0, offset, 0), Quaternion.Euler(90, 0, 0), FaceColors[2]);
+        if (y == 0) CreateFace(cube, new Vector3(0, -offset, 0), Quaternion.Euler(-90, 0, 0), FaceColors[3]);
 
-        if (z == 2) CreateFace(cube, new Vector3(0, 0, offset), Quaternion.Euler(0, 180, 0), _faceColors[4]);
-        if (z == 0) CreateFace(cube, new Vector3(0, 0, -offset), Quaternion.Euler(0, 0, 0), _faceColors[5]);
+        if (z == 2) CreateFace(cube, new Vector3(0, 0, offset), Quaternion.Euler(0, 180, 0), FaceColors[4]);
+        if (z == 0) CreateFace(cube, new Vector3(0, 0, -offset), Quaternion.Euler(0, 0, 0), FaceColors[5]);
     }
 
     private void CreateFace(GameObject parent, Vector3 localPosition, Quaternion rotation, Color color)
@@ -298,15 +295,9 @@ public class PuzzleGenerator : MonoBehaviour
     }
 
     private GameObject[,,] _cubes = new GameObject[3, 3, 3];
-    private Color[] _faceColors = {
-        new Color32(0x4A, 0x48, 0x8A, 255),
-        new Color32(0x5A, 0x71, 0x34, 255),
-        new Color32(0xDB, 0xD9, 0xD1, 255),
-        new Color32(0xF1, 0xAE, 0x18, 255),
-        new Color32(0xC8, 0x64, 0x16, 255),
-        new Color32(0xA8, 0x33, 0x22, 255)
-    };
+
 
     [SerializeField] private GameObject _cubePrefab;
     [SerializeField] private CamSwipe _camSwipe;
+    [SerializeField] private InfoText _info;
 }

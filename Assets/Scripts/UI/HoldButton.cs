@@ -1,16 +1,14 @@
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
+public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
 {
 
     private void Awake()
     {
         _rect = GetComponent<RectTransform>();
-        _selectable.interactable = false;
     }
 
     private void StartHold()
@@ -21,10 +19,11 @@ public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         var targetSize = new Vector2(_rect.sizeDelta.x, startSize.y);
 
         _holdTween = _processIndicator.DOSizeDelta(targetSize, HoldDuration)
-            .SetEase(Ease.Linear)
+            .SetEase(Ease.OutCubic)
             .OnComplete(() =>
             {
                 TriggerSelectable();
+                CompletelHold();
             });
     }
 
@@ -35,6 +34,13 @@ public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             _holdTween.Kill();
         }
 
+        var resetSize = new Vector2(0, _processIndicator.sizeDelta.y);
+        _processIndicator.sizeDelta = resetSize;
+    }
+
+    private void CompletelHold()
+    {
+        _holdTween.Kill();
         var resetSize = new Vector2(0, _processIndicator.sizeDelta.y);
         _processIndicator.sizeDelta = resetSize;
     }
@@ -53,16 +59,27 @@ public class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         {
             toggle.isOn = !toggle.isOn;
         }
+
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
+        if (!_selectable.interactable) return;
+
+        transform.localScale = Vector3.one * 1.1f;
         StartHold();
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
         CancelHold();
+        transform.localScale = Vector3.one;
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        CancelHold();
+        transform.localScale = Vector3.one;
     }
 
     public float HoldDuration = 1f;

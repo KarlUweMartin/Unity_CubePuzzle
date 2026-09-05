@@ -7,9 +7,6 @@ public class CamSwipe : MonoBehaviour
 {
     public void SwipeIn(UnityAction onComplete = null) 
     {
-        IsShuffeling = false;
-        IsAnimating = true;
-
         transform.position = new Vector3(0, 10, 15);
         transform.DOMoveY(0, .6f).SetEase(Ease.InOutCubic).OnComplete(() =>
         {
@@ -20,14 +17,11 @@ public class CamSwipe : MonoBehaviour
 
     public void SwipeOut(UnityAction onComplete = null)
     {
-        IsShuffeling = false;
-        IsAnimating = true;
-
         transform.position = new Vector3(0, 0, 15);
+        IsAnimating = true;
         transform.DOMoveY(10, 1.2f).SetEase(Ease.InOutCubic).OnComplete(() =>
         {
             onComplete?.Invoke();
-            IsAnimating = false; 
         });
     }
 }

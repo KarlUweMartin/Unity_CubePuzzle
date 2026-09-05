@@ -8,8 +8,6 @@ public class PuzzleController : MonoBehaviour
     private void Start()
     {
         DOTween.Init();
-        _shuffleButton.onValueChanged.AddListener((value) => { IsShuffeling = value; });
-        _resetButton.onClick.AddListener(ResetPuzzle);
         _dragDetector.OnDragStart.AddListener(StartDrag);
         _dragDetector.OnDragUpdate.AddListener(UpdateDrag);
         _dragDetector.OnDragEnd.AddListener(EndDrag);
@@ -48,6 +46,19 @@ public class PuzzleController : MonoBehaviour
 
         _sliceCubes = _generator.RandomSlice();
         RotateSliceRandomly(_sliceCubes);
+    }
+
+    public void ResetPuzzle()
+    {
+        if (_pivot != null)
+        {
+            _pivot.transform.DOComplete();
+        }
+
+        IsShuffeling = false;
+        IsAnimating = false;
+
+        _generator.Generate();
     }
 
     private void StartDrag(Vector3 dragVector)
@@ -210,24 +221,8 @@ public class PuzzleController : MonoBehaviour
         return _pivot.transform;
     }
 
-    private void ResetPuzzle()
-    {
-        if (_pivot != null) 
-        {
-            _pivot.transform.DOComplete();
-        }
-
-        IsShuffeling = false;
-        IsAnimating = false;
-        _shuffleButton.SetIsOnWithoutNotify(false);
-
-        _generator.Generate();
-    }
-
     private Vector3 RoundVector(Vector3 value) => new(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y), Mathf.RoundToInt(value.z));
 
-    [SerializeField] private Toggle _shuffleButton;
-    [SerializeField] private Button _resetButton;
     [SerializeField] private PuzzleGenerator _generator;
     [SerializeField] private DragDetector _dragDetector;
 
