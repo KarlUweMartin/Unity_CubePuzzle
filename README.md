@@ -1,7 +1,8 @@
 ## Unity - Cube Puzzle
 
 A digital version of the famous copyright protected cube puzzle that almost everyone knows but hardly anyone can solve.
-www.karluwemartin.de/cubegame
+
+[Test it on my website](https://www.karluwemartin.de/cubeGame/)
 
 #### Technical Details
 
